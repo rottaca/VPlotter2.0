@@ -7,44 +7,12 @@ from multiprocessing import Process, Queue
 
 from . import utils
 
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-points_x = []
-points_y = []
-
-plt.ion()
-plt.show()
-        
-def operatePlotterAsync(plotter):
-    print("Plotter thread started")
+def processPlotterQueue(plotter):
+    plotter.processQueueAsync()
     
-    item = plotter.workerQueue.get()
-    i = 0
-    while(item is not None):
-        
-        plotter.executeCmd(item)
-        item = plotter.workerQueue.get()
-        
-        if i % 1000 == 0:
-            plt.cla()
-            plt.plot(points_x,points_y)
-            plt.scatter(0,0, 20, "g")
-            plt.scatter(plotter.calib.origin[0],plotter.calib.origin[1], 20,"r")
-            plt.gca().invert_yaxis()
-            plt.plot([0, plotter.calib.base, plotter.calib.base, 0, 0],[0, 0, 700, 700, 0])
-            plt.axis('equal')
-            plt.draw()
-            plt.pause(0.0001)
-        
-        i+=1
-        
-        
-    print("Plotter thread stopped")
-    exit(0)
-    
-class Plotter:
-    def __init__(self, calib):
-        self.workerProcess = Process(target=operatePlotterAsync, args=(self,))
+class BasePlotter:
+    def __init__(self, calib, ):
+        self.workerProcess = Process(target=processPlotterQueue, args=(self,))
         self.workerQueue = Queue(10)
         
         self.calib = calib
@@ -68,6 +36,17 @@ class Plotter:
         for l in lines:
             self.workerQueue.put(l)
             
+    def processQueueAsync():
+        print("Plotter thread started")
+        
+        item = self.workerQueue.get()
+        while(item is not None):
+            self.executeCmd(item)
+            item = self.workerQueue.get()
+            
+        print("Plotter thread stopped")
+        exit(0)
+    
     def executeCmd(self, cmd):
         # print("Process %s"%cmd)
 
@@ -95,7 +74,6 @@ class Plotter:
         if cmd.startswith("M4"):
             self.penUp()
             
-    
     def goToPos(self, targetPos):
         if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
             print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
@@ -139,29 +117,67 @@ class Plotter:
                 self.currPos[1] += s[1]*self.calib.resolution
                 
     def penUp(self):
-        # print("Pen up")
-        #time.sleep(0.5)
-        if self.penIsDown:
-            points_x.append(self.currPos[0] + self.calib.origin[0])
-            points_y.append(self.currPos[1] + self.calib.origin[1])
-            points_x.append(np.nan)
-            points_y.append(np.nan)
-            self.penIsDown = False
-        
+        self.penIsDown = False
         
     def penDown(self):
-        # print("Pen down")
-        #time.sleep(0.5)
-        
-        if not self.penIsDown:
-            points_x.append(self.currPos[0] + self.calib.origin[0])
-            points_y.append(self.currPos[1] + self.calib.origin[1])
-            self.penIsDown = True
+        self.penIsDown = True
             
         
     def setSpeed(self, s):
         # print("Set speed to %f" % s)
         self.speed = s
     
+   
+class SimulationPlotter(BasePlotter):
+    def __init__(self, calib):
+        self.points_x = []
+        self.points_y = []
+        BasePlotter.__init__(self, calib)
         
-    
+    def penUp(self):
+        if self.penIsDown:
+            self.points_x.append(self.currPos[0] + self.calib.origin[0])
+            self.points_y.append(self.currPos[1] + self.calib.origin[1])
+            self.points_x.append(np.nan)
+            self.points_y.append(np.nan)
+            
+        super().penUp()
+        
+    def penDown(self):        
+        if not self.penIsDown:
+            self.points_x.append(self.currPos[0] + self.calib.origin[0])
+            self.points_y.append(self.currPos[1] + self.calib.origin[1])
+            
+        super().penDown()
+        
+    def processQueueAsync(self):
+        print("Plotter thread started")
+        
+        import matplotlib.pyplot as plt
+        import matplotlib.patches as patches
+
+        plt.ion()
+        plt.show()
+        
+        item = self.workerQueue.get()
+        i = 0
+        while(item is not None):
+            self.executeCmd(item)
+            item = self.workerQueue.get()
+            
+            if i % 1000 == 0:
+                plt.cla()
+                plt.plot(self.points_x,self.points_y)
+                plt.scatter(0,0, 20, "g")
+                plt.scatter(self.calib.origin[0],self.calib.origin[1], 20,"r")
+                plt.gca().invert_yaxis()
+                plt.plot([0, self.calib.base, self.calib.base, 0, 0],[0, 0, 700, 700, 0])
+                plt.axis('equal')
+                plt.draw()
+                plt.pause(0.0001)
+            
+            i+=1
+            
+            
+        print("Plotter thread stopped")
+        exit(0)

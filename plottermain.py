@@ -16,10 +16,7 @@ if __name__ == '__main__':
 
     print(calib)
 
-    plotter = plotter.Plotter(calib)
-   
-    sys.stdout.flush()
-    
+    plotter = plotter.SimulationPlotter(calib)
     plotter.workerQueue.put("G28")
     
     gen = gcode_generators.BinaryGenerator()

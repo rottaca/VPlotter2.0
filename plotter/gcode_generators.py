@@ -21,7 +21,7 @@ class GCodeGenerator:
 
 class GeneratorBase:
     def __init__(self):
-        self.params = {"scale":2 , "offset": np.array([0,0])}
+        self.params = {"scale":1 , "offset": np.array([0,0])}
         self.generator = GCodeGenerator()
     
     def updateParams(self, params):
