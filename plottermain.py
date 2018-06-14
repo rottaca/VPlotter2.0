@@ -4,10 +4,14 @@ if __name__ == '__main__':
     import sys
     import random 
     import imageio
+    # import cProfile
     
     from plotter import utils
     from plotter import plotter
     from plotter import gcode_generators
+    
+    # pr = cProfile.Profile()
+    # pr.enable()
     
     calib = utils.Calibration()
     base = 1000.0
@@ -16,17 +20,28 @@ if __name__ == '__main__':
 
     print(calib)
 
+    # plotter = plotter.HardwarePlotter(calib)
     plotter = plotter.SimulationPlotter(calib)
     plotter.workerQueue.put("G28")
     
     gen = gcode_generators.BinaryGenerator()
+    gen.params["scale"] = 1
+    gen.params["offset"] = [0,0]
     im = imageio.imread('imageio:chelsea.png')
+    #im = imageio.imread('test.png')
     
-    gcode = gen.convertImage(np.invert(im))
+    print("Postprocessing gcode...")
+    gcode = gcode_generators.postProcessGCode(gen.convertImage(np.invert(im)), minSegmentLen=1)
+   
+    print("Saving gcode...")
     with open('example.gcode', 'w') as the_file:
         the_file.write("\n".join(gcode))
         
+    print("Executing gcode...")
     plotter.executeGCodeFile("example.gcode")
     
         
-    # plotter.shutdown()
+    plotter.shutdown()
+    
+    # pr.disable()
+    # pr.print_stats(sort='time')

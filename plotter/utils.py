@@ -12,7 +12,7 @@ class Calibration:
         self.base = 0
         self.mass = 0
         
-    def computeCalibration(self, base, l, mass=0, stepsPerMM = 200, resolution=0.1):
+    def computeCalibration(self, base, l, mass=0, stepsPerMM = 200, resolution=1):
         if base > np.sum(l):
             print("Invalid clalibration data specified")
             exit(1)

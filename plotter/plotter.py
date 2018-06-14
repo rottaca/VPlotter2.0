@@ -6,14 +6,16 @@ import time
 from multiprocessing import Process, Queue
 
 from . import utils
+from . import gcode_generators
+
 
 def processPlotterQueue(plotter):
     plotter.processQueueAsync()
     
 class BasePlotter:
-    def __init__(self, calib, ):
+    def __init__(self, calib):
         self.workerProcess = Process(target=processPlotterQueue, args=(self,))
-        self.workerQueue = Queue(10)
+        self.workerQueue = Queue(1000)
         
         self.calib = calib
         self.currPos  = np.zeros((2,))
@@ -32,47 +34,63 @@ class BasePlotter:
     def executeGCodeFile(self, file):
         with open(file, 'r') as f:
             lines = f.readlines()
-            
-        for l in lines:
-            self.workerQueue.put(l)
+        
+        for c in lines:
+            self.workerQueue.put(c.strip())
             
     def processQueueAsync():
         print("Plotter thread started")
         
         item = self.workerQueue.get()
         while(item is not None):
+        
             self.executeCmd(item)
+                
             item = self.workerQueue.get()
             
         print("Plotter thread stopped")
         exit(0)
     
     def executeCmd(self, cmd):
-        # print("Process %s"%cmd)
-
         if cmd.startswith("G0"):
-            params = cmd.split()
-            X = Y = 0
-            for p in params:
-                if p.startswith("X"):
-                    X = float(p[1:])
-                if p.startswith("Y"):
-                    Y = float(p[1:])
-                    
-            start = time.time()
-            self.goToPos(np.array([X,Y]))
-            end = time.time()
-            # print("Draw time: %f" % (end-start))
-            
-        if cmd.startswith("G28"):
-            self.penUp()
-            self.goToPos(np.array([0,0]))
-            
-        if cmd.startswith("M3"):
+            d = gcode_generators.decodeGCode(cmd)
+            self.goToPos([d["X"], d["Y"]])
+        elif cmd.startswith("G28"):
+            self.goToPos([0,0])
+        elif cmd.startswith("M3"):
             self.penDown()
-            
-        if cmd.startswith("M4"):
+        elif cmd.startswith("M4"):
             self.penUp()
+        else:
+            print("Unexpected type read. Failed to process command.")
+            exit(0)
+            
+    def goToPos(self, targetPos):
+        if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
+            print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
+            exit(1)
+            
+        self.currPos = targetPos
+        
+    def penUp(self):
+        self.penIsDown = False
+        
+    def penDown(self):
+        self.penIsDown = True
+        
+    def setSpeed(self, s):
+        # print("Set speed to %f" % s)
+        self.speed = s
+   
+class HardwarePlotter(BasePlotter):
+    def __init__(self, calib):        
+        BasePlotter.__init__(self, calib)
+        
+    def penUp(self):
+        super().penUp()
+        
+    def penDown(self): 
+        super().penDown()
             
     def goToPos(self, targetPos):
         if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
@@ -91,7 +109,7 @@ class BasePlotter:
                 s[i] = -1
         err = d[0] + d[1]
         e2 = 0
-                
+
         while(True):
             newCordLength = self.calib.point2CordLength(self.currPos)
             deltaCordLength = newCordLength - self.currCordLength
@@ -116,23 +134,44 @@ class BasePlotter:
                 err += d[0]
                 self.currPos[1] += s[1]*self.calib.resolution
                 
-    def penUp(self):
-        self.penIsDown = False
+    def processQueueAsync(self):
+        print("Plotter thread started")
         
-    def penDown(self):
-        self.penIsDown = True
+        i = 0       
+        item = self.workerQueue.get()
+        start = time.time()
+        while(item is not None):
+        
+            self.executeCmd(item)
             
-        
-    def setSpeed(self, s):
-        # print("Set speed to %f" % s)
-        self.speed = s
-    
-   
+            i+=1
+            if i % 1000 == 0:
+                print("Processed %d commands. %f ms per cmd. " % (i, (time.time()- start)*1000/i))
+                
+            item = self.workerQueue.get()
+            
+                
+        print("Plotter thread stopped")
+        exit(0)        
+ 
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+
+plt.ion()
+plt.show()  
 class SimulationPlotter(BasePlotter):
     def __init__(self, calib):
         self.points_x = []
         self.points_y = []
+        self.pen_up_x = []
+        self.pen_up_y = []
+        self.pen_down_x = []
+        self.pen_down_y = []
+        
         BasePlotter.__init__(self, calib)
+        
+        
+
         
     def penUp(self):
         if self.penIsDown:
@@ -140,6 +179,8 @@ class SimulationPlotter(BasePlotter):
             self.points_y.append(self.currPos[1] + self.calib.origin[1])
             self.points_x.append(np.nan)
             self.points_y.append(np.nan)
+            self.pen_up_x.append(self.currPos[0] + self.calib.origin[0])
+            self.pen_up_y.append(self.currPos[1] + self.calib.origin[1])
             
         super().penUp()
         
@@ -147,37 +188,44 @@ class SimulationPlotter(BasePlotter):
         if not self.penIsDown:
             self.points_x.append(self.currPos[0] + self.calib.origin[0])
             self.points_y.append(self.currPos[1] + self.calib.origin[1])
+            self.pen_down_x.append(self.currPos[0] + self.calib.origin[0])
+            self.pen_down_y.append(self.currPos[1] + self.calib.origin[1])
             
         super().penDown()
-        
+     
+    def plotCurrentState(self):
+        plt.cla()
+        plt.plot(self.points_x,self.points_y)
+        plt.scatter(0,0, 20, "g")
+        plt.scatter(self.calib.origin[0],self.calib.origin[1], 20,"g")
+        plt.gca().invert_yaxis()
+        plt.plot([0, self.calib.base, self.calib.base, 0, 0],[0, 0, 700, 700, 0])
+        plt.scatter(self.pen_up_x,self.pen_up_y, 10,"m")
+        plt.scatter(self.pen_down_x,self.pen_down_y, 10,"c")
+        plt.axis('equal')
+        plt.draw()
+        plt.pause(0.0001)
+            
     def processQueueAsync(self):
         print("Plotter thread started")
-        
-        import matplotlib.pyplot as plt
-        import matplotlib.patches as patches
-
-        plt.ion()
-        plt.show()
+         
         
         item = self.workerQueue.get()
         i = 0
+        start = time.time()
         while(item is not None):
             self.executeCmd(item)
-            item = self.workerQueue.get()
-            
-            if i % 1000 == 0:
-                plt.cla()
-                plt.plot(self.points_x,self.points_y)
-                plt.scatter(0,0, 20, "g")
-                plt.scatter(self.calib.origin[0],self.calib.origin[1], 20,"r")
-                plt.gca().invert_yaxis()
-                plt.plot([0, self.calib.base, self.calib.base, 0, 0],[0, 0, 700, 700, 0])
-                plt.axis('equal')
-                plt.draw()
-                plt.pause(0.0001)
             
             i+=1
+            if i % 1000 == 0:
+                print("Processed %d commands. %f ms per cmd. " % (i, (time.time()- start)*1000/i))
+                self.plotCurrentState()
+                
             
+            item = self.workerQueue.get()
+                
+        self.plotCurrentState()
+        plt.show(block=True)    
             
         print("Plotter thread stopped")
         exit(0)

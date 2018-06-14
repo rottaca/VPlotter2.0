@@ -2,53 +2,120 @@ import scipy as sp
 import numpy as np
 import imageio
 
-class GCodeGenerator:
-    def __init__(self):
-        pass
-        
-    def goTo(self,p):
-        return "G0 X%f Y%f" % (p[0],p[1])
-    
-    def home(self):
-        return "G28"
-    
-    def penUp(self):
-        return "M4"
-        
-    def penDown(self):
-        return "M3"
+def GCode_goTo(p):
+    return "G0 X%f Y%f" % (p[0],p[1])
 
+def GCode_home():
+    return "G28"
 
+def GCode_up():
+    return "M4"
+    
+def GCode_down():
+    return "M3"
+    
+def decodeGCode(gcode):
+    params = gcode.split()
+    data = {}
+    for p in params:
+        val = float(p[1:])
+        key = p[0]
+        data[key] = val
+    return data
+
+def postProcessGCode(gcode, minSegmentLen=1):
+    init_size=len(gcode)
+    gcode_old = gcode
+    gcode_curr = []
+    pos = None
+    for code in gcode_old:
+        if code.startswith("G0"):
+        
+            d = decodeGCode(code)
+            newPos = np.array([d["X"], d["Y"]])
+            if pos is None:
+                pos = newPos
+            elif np.linalg.norm(pos - newPos) < minSegmentLen:
+                print("Skipping segment of len %f" % (np.linalg.norm(pos - newPos)))
+                continue
+            else:
+                pos = newPos
+        
+        elif code.startswith("G28"):
+            pos = np.array([0,0])
+        
+        gcode_curr.append(code)
+    
+    gcode_old = list(gcode_curr)
+    gcode_curr = []
+    
+    penDownCurr=None
+    penDownNext=None
+    
+    for code in gcode_old:
+        if code.startswith("G0") or code.startswith("G28"):
+            if penDownCurr is None:
+                if penDownNext is not None:
+                    penDownCurr = penDownNext
+                else:
+                    print("Warning: initial pen position unknown! This could cause issues! Assuming pen is up")
+                    penDownCurr=False
+                    penDownNext=False
+            else:
+                if penDownCurr != penDownNext:
+                    if penDownNext:
+                        gcode_curr.append(GCode_down())
+                    else:                    
+                        gcode_curr.append(GCode_up())
+                        
+                    penDownCurr = penDownNext
+                
+            gcode_curr.append(code)
+        elif code.startswith("M3"):
+            penDownNext = True
+        elif code.startswith("M4"):
+            penDownNext = False
+        else:
+            gcode_curr.append(code)
+            
+    print("Reduced size from %d to %d. " % (init_size, len(gcode_curr)))
+    return gcode_curr
+    
+    
 class GeneratorBase:
     def __init__(self):
-        self.params = {"scale":1 , "offset": np.array([0,0])}
-        self.generator = GCodeGenerator()
+        self.params = {
+            "scale":1 ,
+            "offset": np.array([0,0])
+            }
     
     def updateParams(self, params):
         self.params.update(params)
-    
+        
     def convertImage(self, img):
-        pass
+        return np.array()
         
 class BinaryGenerator(GeneratorBase):
     def __init__(self):
         GeneratorBase.__init__(self)
-        self.updateParams({"threshold":128})
+        self.updateParams({
+            "threshold":150
+        })
         
     def convertImage(self, img):
         gcode = []
         
         img = img.mean(axis = 2)
         
-        import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
 
-        plt.imshow(img>self.params["threshold"])
-        plt.gray()
-        plt.show(block=False)
-        plt.pause(0.001)
+        # plt.imshow(img>self.params["threshold"])
+        # plt.gray()
+        # plt.show(block=False)
+        # plt.pause(0.001)
         
-        gcode.append(self.generator.penUp())
-        gcode.append(self.generator.home())
+        gcode.append(GCode_up())
+        gcode.append(GCode_home())
         drawing = False
         lastDrawPos = [0,0]
         lastY = 0
@@ -58,8 +125,8 @@ class BinaryGenerator(GeneratorBase):
             
             if y != lastY and drawing:
                 pScreen = lastDrawPos*self.params["scale"] + self.params["offset"]
-                gcode.append(self.generator.goTo(pScreen))
-                gcode.append(self.generator.penUp())
+                gcode.append(GCode_goTo(pScreen))
+                gcode.append(GCode_up())
                 drawing = False
                 
             lastY = y
@@ -69,14 +136,14 @@ class BinaryGenerator(GeneratorBase):
             if pixel > self.params["threshold"]:
                 if not drawing:
                     pScreen = pImg*self.params["scale"] + self.params["offset"]
-                    gcode.append(self.generator.goTo(pScreen))
-                    gcode.append(self.generator.penDown())
+                    gcode.append(GCode_goTo(pScreen))
+                    gcode.append(GCode_down())
                     drawing = True
             else:
                 if drawing:
                     pScreen = lastDrawPos*self.params["scale"] + self.params["offset"]
-                    gcode.append(self.generator.goTo(pScreen))
-                    gcode.append(self.generator.penUp())
+                    gcode.append(GCode_goTo(pScreen))
+                    gcode.append(GCode_up())
                     drawing = False
                
             if drawing:
