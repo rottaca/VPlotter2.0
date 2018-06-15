@@ -98,24 +98,14 @@ class GeneratorBase:
 class BinaryGenerator(GeneratorBase):
     def __init__(self):
         GeneratorBase.__init__(self)
-        self.updateParams({
-            "threshold":150
-        })
         
     def convertImage(self, img):
-        gcode = []
         
-        img = img.mean(axis = 2)
+        if len(img.shape) == 3 and img.shape[2] > 1:
+            img = img.mean(axis = 2)
         
-        # import matplotlib.pyplot as plt
-
-        # plt.imshow(img>self.params["threshold"])
-        # plt.gray()
-        # plt.show(block=False)
-        # plt.pause(0.001)
+        gcode = [GCode_up(), GCode_home()]
         
-        gcode.append(GCode_up())
-        gcode.append(GCode_home())
         drawing = False
         lastDrawPos = [0,0]
         lastY = 0
@@ -133,7 +123,7 @@ class BinaryGenerator(GeneratorBase):
             
             pImg = np.array([x,y])
             
-            if pixel > self.params["threshold"]:
+            if pixel > 0:
                 if not drawing:
                     pScreen = pImg*self.params["scale"] + self.params["offset"]
                     gcode.append(GCode_goTo(pScreen))
@@ -150,6 +140,86 @@ class BinaryGenerator(GeneratorBase):
                 lastDrawPos = pImg
                 
         return gcode
+        
+class SinWaveGenerator(GeneratorBase):
+    def __init__(self):
+        GeneratorBase.__init__(self)
+        
+    def convertImage(self, img):
+        
+        if len(img.shape) == 3 and img.shape[2] > 1:
+            img = img.mean(axis = 2)
+        
+        gcode = [GCode_up(), GCode_home()]
+        
+        lastY = 0
+        
+        pImg = np.array([0,0])
+        pScreen = pImg*self.params["scale"] + self.params["offset"]
+                      
+        for index, pixel in np.ndenumerate(img):
+            y,x = index
+                        
+            pImg = np.array([x,y + pixel/255*2*np.sin(x + 10*pixel/255)])
+            pScreen = pImg*self.params["scale"] + self.params["offset"]
+            
+            if y != lastY:
+                gcode.append(GCode_up())
+                
+            gcode.append(GCode_goTo(pScreen))
+            
+            if y != lastY:
+                gcode.append(GCode_down())
+                lastY = y
+                
+        return gcode
+        
+class BoxGenerator(GeneratorBase):
+    def __init__(self):
+        GeneratorBase.__init__(self)
+        
+        
+    def drawBox(self, c, v):
+        points = [
+            np.array((-0.5, -0.5)),
+            np.array((-0.5,  0.5)),
+            np.array(( 0.5,  0.5)),
+            np.array(( 0.5, -0.5)),
+            np.array((-0.5, -0.5))
+        ]
+        
+        gcode = []
+        for p in points:
+            pImg = p*v + c
+            pScreen = pImg*self.params["scale"] + self.params["offset"]
+            gcode.append(GCode_goTo(pScreen))
+            
+            if len(gcode) == 1: 
+                gcode.append(GCode_down())
+        
+        gcode.append(GCode_up())
+        
+        return gcode
+        
+    def convertImage(self, img):
+        
+        if len(img.shape) == 3 and img.shape[2] > 1:
+            img = img.mean(axis = 2)
+        
+        gcode = [GCode_up(), GCode_home()]
+        
+        lastY = 0
+        
+        pImg = np.array([0,0])
+        pScreen = pImg*self.params["scale"] + self.params["offset"]
+                
+        for index, pixel in np.ndenumerate(img):
+            if pixel > 0:
+                y,x = index
+                gcode.extend(self.drawBox(np.array([x,y]), pixel/255.0))
+                
+        return gcode
+     
         
         
         

@@ -24,23 +24,38 @@ if __name__ == '__main__':
     plotter = plotter.SimulationPlotter(calib)
     plotter.workerQueue.put("G28")
     
+    im = imageio.imread('imageio:chelsea.png')
+    # im = imageio.imread('catsmall.png')
+    #im = imageio.imread('test.png')
+    
+    im = im.mean(axis = 2)
+    
     gen = gcode_generators.BinaryGenerator()
     gen.params["scale"] = 1
     gen.params["offset"] = [0,0]
-    im = imageio.imread('imageio:chelsea.png')
-    #im = imageio.imread('test.png')
+    gcode = gen.convertImage(im > 120)
+    
+    # gen = gcode_generators.SinWaveGenerator()
+    # gen.params["scale"] = 2
+    # gen.params["offset"] = [10,10]
+    # gcode = gen.convertImage(im)    
+    
+    # gen = gcode_generators.BoxGenerator()
+    # gen.params["scale"] = 4.5
+    # gen.params["offset"] = [10,10]
+    # gcode = gen.convertImage(im)    
     
     print("Postprocessing gcode...")
-    gcode = gcode_generators.postProcessGCode(gen.convertImage(np.invert(im)), minSegmentLen=1)
-   
+    gcode = gcode_generators.postProcessGCode(gcode, minSegmentLen=1)
+    
     print("Saving gcode...")
     with open('example.gcode', 'w') as the_file:
         the_file.write("\n".join(gcode))
         
     print("Executing gcode...")
     plotter.executeGCodeFile("example.gcode")
-    
-        
+
+
     plotter.shutdown()
     
     # pr.disable()

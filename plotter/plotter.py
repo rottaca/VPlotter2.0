@@ -169,9 +169,18 @@ class SimulationPlotter(BasePlotter):
         self.pen_down_y = []
         
         BasePlotter.__init__(self, calib)
+    
+    def goToPos(self, targetPos):
         
-        
-
+        if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
+            print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
+            exit(1)
+            
+        if self.penIsDown:
+            self.points_x.append(self.currPos[0] + self.calib.origin[0])
+            self.points_y.append(self.currPos[1] + self.calib.origin[1])
+            
+        super().goToPos(targetPos)
         
     def penUp(self):
         if self.penIsDown:
@@ -183,6 +192,7 @@ class SimulationPlotter(BasePlotter):
             self.pen_up_y.append(self.currPos[1] + self.calib.origin[1])
             
         super().penUp()
+
         
     def penDown(self):        
         if not self.penIsDown:
@@ -192,23 +202,23 @@ class SimulationPlotter(BasePlotter):
             self.pen_down_y.append(self.currPos[1] + self.calib.origin[1])
             
         super().penDown()
+
      
     def plotCurrentState(self):
         plt.cla()
         plt.plot(self.points_x,self.points_y)
         plt.scatter(0,0, 20, "g")
         plt.scatter(self.calib.origin[0],self.calib.origin[1], 20,"g")
-        plt.gca().invert_yaxis()
         plt.plot([0, self.calib.base, self.calib.base, 0, 0],[0, 0, 700, 700, 0])
-        plt.scatter(self.pen_up_x,self.pen_up_y, 10,"m")
-        plt.scatter(self.pen_down_x,self.pen_down_y, 10,"c")
+        # plt.scatter(self.pen_up_x,self.pen_up_y, 10,"m")
+        # plt.scatter(self.pen_down_x,self.pen_down_y, 10,"c")
         plt.axis('equal')
+        plt.gca().invert_yaxis()
         plt.draw()
         plt.pause(0.0001)
             
     def processQueueAsync(self):
         print("Plotter thread started")
-         
         
         item = self.workerQueue.get()
         i = 0
@@ -225,6 +235,7 @@ class SimulationPlotter(BasePlotter):
             item = self.workerQueue.get()
                 
         self.plotCurrentState()
+        
         plt.show(block=True)    
             
         print("Plotter thread stopped")
