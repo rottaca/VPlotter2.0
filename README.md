@@ -9,23 +9,25 @@ The software may get a small web ui in the future.
 
 Please install a standard raspian image: https://www.raspberrypi.org/documentation/installation/installing-images/
 
-Install the raspap-webgui for a simple wifi hotspot with a webinterface. Also have a look on their documentation (https://github.com/billz/raspap-webgui).
+Install the raspap-webgui for a simple wifi hotspot with a webinterface. Also have a look on their documentation ( https://github.com/billz/raspap-webgui ).
+
+Default settings are:
+
+IP address: 10.3.141.1
+Username: admin
+Password: secret
+DHCP range: 10.3.141.50 to 10.3.141.255
+SSID: raspi-webgui
+Password: ChangeMe
 
 `wget -q https://git.io/voEUQ -O /tmp/raspap && bash /tmp/raspap`
 
-
-
-`sudo apt install python3``
-
-Install a few pacakges:
-
-`pip3 install virtualenv`
-
-
+`sudo apt-get install python3``
 
 Please install the following python packages:
 
-`sudo pip3 install imageio scipy matplotlib`
+`pip3 install imageio scipy matplotlib pycairo rpimotorlib`
+
 
 # Troubleshooting
 

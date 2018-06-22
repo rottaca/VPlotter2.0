@@ -89,7 +89,6 @@ if motorlib_loader is not None:
     
     class HardwarePlotter(BasePlotter):
         def __init__(self, calib):        
-            BasePlotter.__init__(self, calib)
             # GPIO Pins
             dir_pin  = (0, 1)
             step_pin = (2, 3)
@@ -107,10 +106,13 @@ if motorlib_loader is not None:
                 RpiMotorLib.A4988Nema(dir_pin[0], step_pin[0], res_pins, "DRV8825"),
                 RpiMotorLib.A4988Nema(dir_pin[1], step_pin[1], res_pins, "DRV8825")
             ]
+             
             self.servo = rpiservolib.SG90servo("servoone", 50, 3, 11)
             self.servo_pin = 9
             self.servo_pos_up = 3
-            self.servo_pos_down= 10
+            self.servo_pos_down= 4
+            
+            BasePlotter.__init__(self, calib)
             
         def penUp(self):
             self.servo.servo_move(self.servo_pin, self.servo_pos_up, 1, False, 0.01)
@@ -144,7 +146,7 @@ if motorlib_loader is not None:
                 deltaCordLength *= self.calib.stepsPerMM
                 
                 for i in range(2):
-                    self.stepper[i].motor_go(deltaCordLength[i]>0, self.res_type, deltaCordLength[i]/self.res_type_map[self.res_type], 0.005, True, 0.05)
+                    self.stepper[i].motor_go(deltaCordLength[i]>0, self.res_type, int(deltaCordLength[i]/self.res_type_map[self.res_type]), 0.005, True, 0.05)
 
                 self.currCordLength = newCordLength
 
