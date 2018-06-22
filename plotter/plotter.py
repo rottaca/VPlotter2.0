@@ -81,78 +81,110 @@ class BasePlotter:
     def setSpeed(self, s):
         # print("Set speed to %f" % s)
         self.speed = s
-   
-class HardwarePlotter(BasePlotter):
-    def __init__(self, calib):        
-        BasePlotter.__init__(self, calib)
-        
-    def penUp(self):
-        super().penUp()
-        
-    def penDown(self): 
-        super().penDown()
-            
-    def goToPos(self, targetPos):
-        if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
-            print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
-            exit(1)
-            
-        # print("Move to %f x %f"%(targetPos[0],targetPos[1]))
-        #sys.stdout.flush()
 
-        # Bresenham line algorithm
-        d = np.abs(targetPos - self.currPos)/self.calib.resolution
-        d *= [1,-1]
-        s = np.ones((2,))
-        for i in range(2):
-            if self.currPos[i] >= targetPos[i]:
-                s[i] = -1
-        err = d[0] + d[1]
-        e2 = 0
-
-        while(True):
-            newCordLength = self.calib.point2CordLength(self.currPos)
-            deltaCordLength = newCordLength - self.currCordLength
-            deltaCordLength *= self.calib.stepsPerMM
-            self.currCordLength = newCordLength
-
-            # print("Set %f, %f"%(self.currPos[0],self.currPos[1]))
-            # print("Length %f, %f"%(newCordLength[0],newCordLength[1]))
-            # print("Steps: %d %d" % (deltaCordLength[0],deltaCordLength[1]))
-            # print("Dist %f" % (np.linalg.norm(targetPos - self.currPos)))
-            # sys.stdout.flush()
+import importlib
+motorlib_loader = importlib.find_loader('RpiMotorLib')
+if motorlib_loader is not None:
+    from RpiMotorLib import RpiMotorLib, rpiservolib
+    
+    class HardwarePlotter(BasePlotter):
+        def __init__(self, calib):        
+            BasePlotter.__init__(self, calib)
+            # GPIO Pins
+            dir_pin  = (0, 1)
+            step_pin = (2, 3)
+            res_pins = (2, 3, 4)
+            self.res_type = "Full"
+            self.res_type_map = {
+                "Full": 1,
+                "Half": 1/2.0,
+                "1/4":  1/4.0,
+                "1/8":  1/8.0,
+                "1/16": 1/16.0,
+                "1/32": 1/32.0
+            }
+            self.stepper = [
+                RpiMotorLib.A4988Nema(dir_pin[0], step_pin[0], res_pins, "DRV8825"),
+                RpiMotorLib.A4988Nema(dir_pin[1], step_pin[1], res_pins, "DRV8825")
+            ]
+            self.servo = rpiservolib.SG90servo("servoone", 50, 3, 11)
+            self.servo_pin = 9
+            self.servo_pos_up = 3
+            self.servo_pos_down= 10
             
-            # Are we close to our target point ?
-            if(np.linalg.norm(targetPos - self.currPos) < self.calib.resolution):
-                break
-                
-            e2 = 2*err
-            if e2 > d[1]:
-                err += d[1]
-                self.currPos[0] += s[0]*self.calib.resolution
-            if e2 < d[0]:
-                err += d[0]
-                self.currPos[1] += s[1]*self.calib.resolution
-                
-    def processQueueAsync(self):
-        print("Plotter thread started")
-        
-        i = 0       
-        item = self.workerQueue.get()
-        start = time.time()
-        while(item is not None):
-        
-            self.executeCmd(item)
+        def penUp(self):
+            self.servo.servo_move(self.servo_pin, self.servo_pos_up, 1, False, 0.01)
+            super().penUp()
             
-            i+=1
-            if i % 1000 == 0:
-                print("Processed %d commands. %f ms per cmd. " % (i, (time.time()- start)*1000/i))
+        def penDown(self): 
+            self.servo.servo_move(self.servo_pin, self.servo_pos_down, 1, False, 0.01)
+            super().penDown()
                 
+        def goToPos(self, targetPos):
+            if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
+                print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
+                exit(1)
+                
+            # print("Move to %f x %f"%(targetPos[0],targetPos[1]))
+            #sys.stdout.flush()
+
+            # Bresenham line algorithm
+            d = np.abs(targetPos - self.currPos)/self.calib.resolution
+            d *= [1,-1]
+            s = np.ones((2,))
+            for i in range(2):
+                if self.currPos[i] >= targetPos[i]:
+                    s[i] = -1
+            err = d[0] + d[1]
+            e2 = 0
+
+            while(True):
+                newCordLength = self.calib.point2CordLength(self.currPos)
+                deltaCordLength = newCordLength - self.currCordLength
+                deltaCordLength *= self.calib.stepsPerMM
+                
+                for i in range(2):
+                    self.stepper[i].motor_go(deltaCordLength[i]>0, self.res_type, deltaCordLength[i]/self.res_type_map[self.res_type], 0.005, True, 0.05)
+
+                self.currCordLength = newCordLength
+
+                # print("Set %f, %f"%(self.currPos[0],self.currPos[1]))
+                # print("Length %f, %f"%(newCordLength[0],newCordLength[1]))
+                # print("Steps: %d %d" % (deltaCordLength[0],deltaCordLength[1]))
+                # print("Dist %f" % (np.linalg.norm(targetPos - self.currPos)))
+                # sys.stdout.flush()
+                
+                # Are we close to our target point ?
+                if(np.linalg.norm(targetPos - self.currPos) < self.calib.resolution):
+                    break
+                    
+                e2 = 2*err
+                if e2 > d[1]:
+                    err += d[1]
+                    self.currPos[0] += s[0]*self.calib.resolution
+                if e2 < d[0]:
+                    err += d[0]
+                    self.currPos[1] += s[1]*self.calib.resolution
+                    
+        def processQueueAsync(self):
+            print("Plotter thread started")
+            
+            i = 0       
             item = self.workerQueue.get()
+            start = time.time()
+            while(item is not None):
             
+                self.executeCmd(item)
                 
-        print("Plotter thread stopped")
-        exit(0)        
+                i+=1
+                if i % 1000 == 0:
+                    print("Processed %d commands. %f ms per cmd. " % (i, (time.time()- start)*1000/i))
+                    
+                item = self.workerQueue.get()
+                
+                    
+            print("Plotter thread stopped")
+            exit(0)        
  
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
