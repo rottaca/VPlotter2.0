@@ -87,36 +87,16 @@ motorlib_loader = importlib.util.find_spec('RPi.GPIO')
 if motorlib_loader is None:
     print("RPi.GPIO not found. HardwarePlotter not available.")
 else:
-    from . import motorctrl
     
     class HardwarePlotter(BasePlotter):
-        def __init__(self, calib):        
-          
-            
-            # GPIO Pins
-            dir_pins  = config.PLOTTER_HARDWARE_CONFIG["dir_pins"]
-            step_pins = config.PLOTTER_HARDWARE_CONFIG["step_pins"]
-            res_pins = config.PLOTTER_HARDWARE_CONFIG["res_pins"]
-            micro_stepping = config.PLOTTER_HARDWARE_CONFIG["micro_stepping"]
-            
-            self.steppers = motorctrl.StepperCtrl(dir_pins, step_pins, [res_pins for i in range(2)],micro_stepping=micro_stepping)
-             
-            servo_pin = config.PLOTTER_HARDWARE_CONFIG["servo_pin"]
-            self.servo_pos_up = config.PLOTTER_HARDWARE_CONFIG["servo_pos_up"]
-            self.servo_pos_down= config.PLOTTER_HARDWARE_CONFIG["servo_pos_down"]
-            
-            self.servo = motorctrl.ServoCtrl(servo_pin, init_duty_cycle=self.servo_pos_up)
-        
-        
+        def __init__(self, calib):
             BasePlotter.__init__(self, calib)
             
         def penUp(self):
-            print("up")
             self.servo.moveTo(self.servo_pos_up)
             super().penUp()
             
         def penDown(self): 
-            print("down")
             self.servo.moveTo(self.servo_pos_down)
             super().penDown()
                 
@@ -147,7 +127,7 @@ else:
                 dirs = [int(d) for d in dirs]
                 
                 steps = self.steppers.micro_stepping*deltaCordLength
-                steps = [int(i) for i in steps.tolist()]
+                steps = [int(np.abs(i)) for i in steps.tolist()]
                 self.steppers.doSteps(dirs, steps)
  
                 self.currCordLength = newCordLength
@@ -173,7 +153,22 @@ else:
         def processQueueAsync(self):
             print("Plotter thread started")
             
+            # GPIO Pins
+            dir_pins  = config.PLOTTER_HARDWARE_CONFIG["dir_pins"]
+            step_pins = config.PLOTTER_HARDWARE_CONFIG["step_pins"]
+            res_pins = config.PLOTTER_HARDWARE_CONFIG["res_pins"]
+            micro_stepping = config.PLOTTER_HARDWARE_CONFIG["micro_stepping"]
+            
+            servo_pin = config.PLOTTER_HARDWARE_CONFIG["servo_pin"]
+            self.servo_pos_up = config.PLOTTER_HARDWARE_CONFIG["servo_pos_up"]
+            self.servo_pos_down= config.PLOTTER_HARDWARE_CONFIG["servo_pos_down"]
+            
+            from . import motorctrl
             motorctrl.initMotorCtrl()
+            
+            self.steppers = motorctrl.StepperCtrl(dir_pins, step_pins, [res_pins for i in range(2)],micro_stepping=micro_stepping)
+            self.servo = motorctrl.ServoCtrl(servo_pin, init_duty_cycle=self.servo_pos_up)
+        
             self.steppers.initGPIO()
             self.servo.initGPIO()
             
@@ -190,7 +185,8 @@ else:
                     
                 item = self.workerQueue.get()
                 
-                    
+            motorctrl.cleanup()
+                   
             print("Plotter thread stopped")
             exit(0)        
  

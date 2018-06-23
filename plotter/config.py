@@ -2,7 +2,7 @@
 
 PLOTTER_HARDWARE_CONFIG={
     "dir_pins"      : (0, 1),
-    "step_pins"     : (2, 3),
+    "step_pins"     : (25, 3),
     "res_pins"      : (2, 3, 4),
     "micro_stepping": 1,
     "servo_pin"     : 12,

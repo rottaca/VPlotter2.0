@@ -9,6 +9,9 @@ import numpy as np
 def initMotorCtrl():
   GPIO.setmode(GPIO.BCM)
   #GPIO.setwarnings(False)
+  
+def cleanup():
+  GPIO.cleanup() 
 
 """ 
 Stepper controller for multiple steppers that are controlled with individual pololu DRV8825 boards.
@@ -44,20 +47,19 @@ class StepperCtrl:
         
     
     def doSteps(self, dirs, steps, stepDelay=0.0001):
-        maxSteps=max(dirs)
+        maxSteps=max(steps)
         chCnt = len(steps)
         GPIO.output(self.dir_pins, dirs)
         
         # Compute indices where we have to do a step
         step_pos = []
         for s in range(chCnt):
-            st = np.abs(steps[s])
-            step_pos.append(np.linspace(0,maxSteps,st))
+            step_pos.append(np.linspace(0,maxSteps-1,steps[s]))
             
         # Execute steps
         for i in range(maxSteps):
             for s in range(chCnt):
-                if i >= step_pos[s][0]:                    
+                if step_pos[s][0] - i  <= 0.5:                    
                     GPIO.output(self.step_pins[s], True)
                     time.sleep(stepDelay)
                     GPIO.output(self.step_pins[s], False)
@@ -68,13 +70,14 @@ class ServoCtrl:
     def __init__(self, pwm_pin, ctrl_freq=50, init_duty_cycle=0.1):
         self.ctrl_freq=ctrl_freq
         self.pwm_pin=pwm_pin
+        self.init_duty_cycle=init_duty_cycle
         
     def initGPIO(self):
         GPIO.setup(self.pwm_pin,GPIO.OUT)          
         self.pwm = GPIO.PWM(self.pwm_pin, self.ctrl_freq)
-        self.pwm.start(1)
+        self.pwm.start(self.init_duty_cycle)
         
         
-    def moveTo(self, duty_cycle, delay=1):
-        self.pwm.ChangeDutyCycle(100)
+    def moveTo(self, duty_cycle, delay=0.01):
+        self.pwm.ChangeDutyCycle(duty_cycle)
         time.sleep(delay)
