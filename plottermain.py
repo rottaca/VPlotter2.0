@@ -4,24 +4,47 @@ if __name__ == '__main__':
     import sys
     import random 
     import imageio
+    import argparse
     # import cProfile
     
     from plotter import utils
     from plotter import plotter
     from plotter import gcode_generators
+    from plotter import config
     
+    parser = argparse.ArgumentParser(description='VPlotter python implementation.')
+    parser.add_argument('--backend', choices={"hw","sw"}, default="sw", help="Which backend should be used? Simulation or hardware plotter?")
+
+    args=parser.parse_args()
+    print(args)
     # pr = cProfile.Profile()
     # pr.enable()
     
     calib = utils.Calibration()
-    base = 1000.0
+        
+    base = config.PLOTTER_HARDWARE_CONFIG["base_width"]
     calib_len = np.array([100.0,950.0])
-    calib.computeCalibration(base,calib_len)
-
+    calib.computeCalibration(base,
+                             calib_len,
+                             stepsPerMM=config.PLOTTER_HARDWARE_CONFIG["steps_per_mm"],
+                             resolution=config.PLOTTER_HARDWARE_CONFIG["movement_resolution"])
     print(calib)
 
-    # plotter = plotter.HardwarePlotter(calib)
-    plotter = plotter.SimulationPlotter(calib)
+    if args.backend=="hw":
+        if hasattr(plotter, 'HardwarePlotter'):
+            print("Using hardware plotter backend")
+            plotter = plotter.HardwarePlotter(calib)
+        else:
+            print("Hardware plotter backend not available!")
+            exit(1)
+    else:
+        if hasattr(plotter, 'SimulationPlotter'):
+            print("Using simulation plotter backend")
+            plotter = plotter.SimulationPlotter(calib)
+        else:
+            print("Simulation plotter backend not available!")
+            exit(1)
+    
     plotter.workerQueue.put("G28")
     
     im = imageio.imread('imageio:chelsea.png')

@@ -12,29 +12,39 @@ Please install a standard raspian image: https://www.raspberrypi.org/documentati
 Install the raspap-webgui for a simple wifi hotspot with a webinterface. Also have a look on their documentation ( https://github.com/billz/raspap-webgui ).
 
 Default settings are:
+- IP address: 10.3.141.1
+- Username: admin
+- Password: secret
+- DHCP range: 10.3.141.50 to 10.3.141.255
+- SSID: raspi-webgui
+- Password: ChangeMe
 
-IP address: 10.3.141.1
-Username: admin
-Password: secret
-DHCP range: 10.3.141.50 to 10.3.141.255
-SSID: raspi-webgui
-Password: ChangeMe
+The quick way to install the hotspot is executing the following command:
 
 `wget -q https://git.io/voEUQ -O /tmp/raspap && bash /tmp/raspap`
 
-`sudo apt-get install python3``
+To setup our python environment, please install the following python packages:
 
-Please install the following python packages:
+`sudo apt-get install python3 python3-venv`
 
-`pip3 install imageio scipy matplotlib pycairo rpimotorlib`
+Create a new virtual environment:
 
+`python3 -m venv ~/vplotterenv` 
 
-# Troubleshooting
+Activate the virtual environment:
 
-If you encounter this error while starting the program:
+`source ~/vplotterenv/bin/activate`
 
-`libf77blas.so.3: cannot open shared object file: No such file or directory`
+Install our packages in the virtual environment. This may take some time:
 
-Try to install the following library:
+`~/vplotterenv/bin/pip3 install wheeel numpy scipy imageio matplotlib RPi.GPIO rpimotorlib`
 
-`sudo apt-get install libatlas-base-dev`
+If you would like to use the simulation environment, that renders all drawing moves on your screen, also install the following package:
+
+`sudo apt-get install tk-dev`
+
+`~/vplotterenv/bin/pip3 install matplotlib`
+
+After everything installed successfully, download the VPlotter repository:
+
+`git clone https://github.com/rottaca/VPlotter2.0.git ~/VPlotter2.0`

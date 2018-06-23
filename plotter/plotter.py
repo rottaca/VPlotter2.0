@@ -7,7 +7,7 @@ from multiprocessing import Process, Queue
 
 from . import utils
 from . import gcode_generators
-
+from . import config
 
 def processPlotterQueue(plotter):
     plotter.processQueueAsync()
@@ -84,15 +84,18 @@ class BasePlotter:
 
 import importlib
 motorlib_loader = importlib.find_loader('RpiMotorLib')
-if motorlib_loader is not None:
+if motorlib_loader is None:
+    print("RpiMotorLib not found. HardwarePlotter not available.")
+else:
     from RpiMotorLib import RpiMotorLib, rpiservolib
     
     class HardwarePlotter(BasePlotter):
         def __init__(self, calib):        
             # GPIO Pins
-            dir_pin  = (0, 1)
-            step_pin = (2, 3)
-            res_pins = (2, 3, 4)
+            dir_pins  = config.PLOTTER_HARDWARE_CONFIG["dir_pins"]
+            step_pins = config.PLOTTER_HARDWARE_CONFIG["step_pins"]
+            res_pins = config.PLOTTER_HARDWARE_CONFIG["res_pins"]
+            
             self.res_type = "Full"
             self.res_type_map = {
                 "Full": 1,
@@ -103,14 +106,14 @@ if motorlib_loader is not None:
                 "1/32": 1/32.0
             }
             self.stepper = [
-                RpiMotorLib.A4988Nema(dir_pin[0], step_pin[0], res_pins, "DRV8825"),
-                RpiMotorLib.A4988Nema(dir_pin[1], step_pin[1], res_pins, "DRV8825")
+                RpiMotorLib.A4988Nema(dir_pins[0], step_pins[0], res_pins, "DRV8825"),
+                RpiMotorLib.A4988Nema(dir_pins[1], step_pins[1], res_pins, "DRV8825")
             ]
              
             self.servo = rpiservolib.SG90servo("servoone", 50, 3, 11)
-            self.servo_pin = 9
-            self.servo_pos_up = 3
-            self.servo_pos_down= 4
+            self.servo_pin = config.PLOTTER_HARDWARE_CONFIG["servo_pin"]
+            self.servo_pos_up = config.PLOTTER_HARDWARE_CONFIG["servo_pos_up"]
+            self.servo_pos_down= config.PLOTTER_HARDWARE_CONFIG["servo_pos_down"]
             
             BasePlotter.__init__(self, calib)
             
@@ -188,89 +191,95 @@ if motorlib_loader is not None:
             print("Plotter thread stopped")
             exit(0)        
  
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+matplotlib_loader = importlib.find_loader('matplotlib')
+if matplotlib_loader is None:
+    print("Matplotlib not found. On-screen rendering not available.")
+else:
+    import matplotlib
+    matplotlib.use('TkAgg')   # Use tk backend in our virtual environment
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
 
-plt.ion()
-plt.show()  
-class SimulationPlotter(BasePlotter):
-    def __init__(self, calib):
-        self.points_x = []
-        self.points_y = []
-        self.pen_up_x = []
-        self.pen_up_y = []
-        self.pen_down_x = []
-        self.pen_down_y = []
+    plt.ion()
+    plt.show()  
+    class SimulationPlotter(BasePlotter):
+        def __init__(self, calib):
+            self.points_x = []
+            self.points_y = []
+            self.pen_up_x = []
+            self.pen_up_y = []
+            self.pen_down_x = []
+            self.pen_down_y = []
+            
+            BasePlotter.__init__(self, calib)
         
-        BasePlotter.__init__(self, calib)
-    
-    def goToPos(self, targetPos):
-        
-        if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
-            print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
-            exit(1)
+        def goToPos(self, targetPos):
             
-        if self.penIsDown:
-            self.points_x.append(self.currPos[0] + self.calib.origin[0])
-            self.points_y.append(self.currPos[1] + self.calib.origin[1])
-            
-        super().goToPos(targetPos)
-        
-    def penUp(self):
-        if self.penIsDown:
-            self.points_x.append(self.currPos[0] + self.calib.origin[0])
-            self.points_y.append(self.currPos[1] + self.calib.origin[1])
-            self.points_x.append(np.nan)
-            self.points_y.append(np.nan)
-            self.pen_up_x.append(self.currPos[0] + self.calib.origin[0])
-            self.pen_up_y.append(self.currPos[1] + self.calib.origin[1])
-            
-        super().penUp()
-
-        
-    def penDown(self):        
-        if not self.penIsDown:
-            self.points_x.append(self.currPos[0] + self.calib.origin[0])
-            self.points_y.append(self.currPos[1] + self.calib.origin[1])
-            self.pen_down_x.append(self.currPos[0] + self.calib.origin[0])
-            self.pen_down_y.append(self.currPos[1] + self.calib.origin[1])
-            
-        super().penDown()
-
-     
-    def plotCurrentState(self):
-        plt.cla()
-        plt.plot(self.points_x,self.points_y)
-        plt.scatter(0,0, 20, "g")
-        plt.scatter(self.calib.origin[0],self.calib.origin[1], 20,"g")
-        plt.plot([0, self.calib.base, self.calib.base, 0, 0],[0, 0, 700, 700, 0])
-        # plt.scatter(self.pen_up_x,self.pen_up_y, 10,"m")
-        # plt.scatter(self.pen_down_x,self.pen_down_y, 10,"c")
-        plt.axis('equal')
-        plt.gca().invert_yaxis()
-        plt.draw()
-        plt.pause(0.0001)
-            
-    def processQueueAsync(self):
-        print("Plotter thread started")
-        
-        item = self.workerQueue.get()
-        i = 0
-        start = time.time()
-        while(item is not None):
-            self.executeCmd(item)
-            
-            i+=1
-            if i % 1000 == 0:
-                print("Processed %d commands. %f ms per cmd. " % (i, (time.time()- start)*1000/i))
-                self.plotCurrentState()
+            if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
+                print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
+                exit(1)
                 
+            if self.penIsDown:
+                self.points_x.append(self.currPos[0] + self.calib.origin[0])
+                self.points_y.append(self.currPos[1] + self.calib.origin[1])
+                
+            super().goToPos(targetPos)
+            
+        def penUp(self):
+            if self.penIsDown:
+                self.points_x.append(self.currPos[0] + self.calib.origin[0])
+                self.points_y.append(self.currPos[1] + self.calib.origin[1])
+                self.points_x.append(np.nan)
+                self.points_y.append(np.nan)
+                self.pen_up_x.append(self.currPos[0] + self.calib.origin[0])
+                self.pen_up_y.append(self.currPos[1] + self.calib.origin[1])
+                
+            super().penUp()
+
+            
+        def penDown(self):        
+            if not self.penIsDown:
+                self.points_x.append(self.currPos[0] + self.calib.origin[0])
+                self.points_y.append(self.currPos[1] + self.calib.origin[1])
+                self.pen_down_x.append(self.currPos[0] + self.calib.origin[0])
+                self.pen_down_y.append(self.currPos[1] + self.calib.origin[1])
+                
+            super().penDown()
+
+         
+        def plotCurrentState(self):
+            plt.cla()
+            plt.plot(self.points_x,self.points_y)
+            plt.scatter(0,0, 20, "g")
+            plt.scatter(self.calib.origin[0],self.calib.origin[1], 20,"g")
+            plt.plot([0, self.calib.base, self.calib.base, 0, 0],[0, 0, 700, 700, 0])
+            # plt.scatter(self.pen_up_x,self.pen_up_y, 10,"m")
+            # plt.scatter(self.pen_down_x,self.pen_down_y, 10,"c")
+            plt.axis('equal')
+            plt.gca().invert_yaxis()
+            plt.draw()
+            plt.pause(0.0001)
+                
+        def processQueueAsync(self):
+            print("Plotter thread started")
             
             item = self.workerQueue.get()
+            i = 0
+            start = time.time()
+            while(item is not None):
+                self.executeCmd(item)
                 
-        self.plotCurrentState()
-        
-        plt.show(block=True)    
+                i+=1
+                if i % 1000 == 0:
+                    print("Processed %d commands. %f ms per cmd. " % (i, (time.time()- start)*1000/i))
+                    self.plotCurrentState()
+                    
+                
+                item = self.workerQueue.get()
+                    
+            self.plotCurrentState()
             
-        print("Plotter thread stopped")
-        exit(0)
+            plt.show(block=True)    
+                
+            print("Plotter thread stopped")
+            exit(0)
