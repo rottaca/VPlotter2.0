@@ -83,7 +83,7 @@ class BasePlotter:
         self.speed = s
 
 import importlib
-motorlib_loader = importlib.find_loader('RPi.GPIO')
+motorlib_loader = importlib.util.find_spec('RPi.GPIO')
 if motorlib_loader is None:
     print("RPi.GPIO not found. HardwarePlotter not available.")
 else:
@@ -91,6 +91,8 @@ else:
     
     class HardwarePlotter(BasePlotter):
         def __init__(self, calib):        
+          
+            
             # GPIO Pins
             dir_pins  = config.PLOTTER_HARDWARE_CONFIG["dir_pins"]
             step_pins = config.PLOTTER_HARDWARE_CONFIG["step_pins"]
@@ -104,14 +106,17 @@ else:
             self.servo_pos_down= config.PLOTTER_HARDWARE_CONFIG["servo_pos_down"]
             
             self.servo = motorctrl.ServoCtrl(servo_pin, init_duty_cycle=self.servo_pos_up)
-            
+        
+        
             BasePlotter.__init__(self, calib)
             
         def penUp(self):
+            print("up")
             self.servo.moveTo(self.servo_pos_up)
             super().penUp()
             
         def penDown(self): 
+            print("down")
             self.servo.moveTo(self.servo_pos_down)
             super().penDown()
                 
@@ -138,8 +143,13 @@ else:
                 deltaCordLength = newCordLength - self.currCordLength
                 deltaCordLength *= self.calib.stepsPerMM
                 
-                self.steppers.doSteps(bool(deltaCordLength>0), int(deltaCordLength*self.steppers.micro_stepping))
-
+                dirs = (deltaCordLength>0).tolist()
+                dirs = [int(d) for d in dirs]
+                
+                steps = self.steppers.micro_stepping*deltaCordLength
+                steps = [int(i) for i in steps.tolist()]
+                self.steppers.doSteps(dirs, steps)
+ 
                 self.currCordLength = newCordLength
 
                 # print("Set %f, %f"%(self.currPos[0],self.currPos[1]))
@@ -162,6 +172,10 @@ else:
                     
         def processQueueAsync(self):
             print("Plotter thread started")
+            
+            motorctrl.initMotorCtrl()
+            self.steppers.initGPIO()
+            self.servo.initGPIO()
             
             i = 0       
             item = self.workerQueue.get()

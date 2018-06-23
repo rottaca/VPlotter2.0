@@ -4,9 +4,11 @@ import time
 import RPi.GPIO as GPIO
 import numpy as np
 
-GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
-GPIO.cleanup()
+
+
+def initMotorCtrl():
+  GPIO.setmode(GPIO.BCM)
+  #GPIO.setwarnings(False)
 
 """ 
 Stepper controller for multiple steppers that are controlled with individual pololu DRV8825 boards.
@@ -16,13 +18,18 @@ class StepperCtrl:
         self.dir_pins=dir_pins
         self.step_pins=step_pins
         self.res_pins=res_pins       
-        self.setMicrostepping(micro_stepping)
-        
+                    
+        self.micro_stepping = micro_stepping
+    
+    def initGPIO(self):
+    
         GPIO.setup(self.dir_pins,GPIO.OUT)
         GPIO.setup(self.step_pins,GPIO.OUT)
         
         for p in self.res_pins:
             GPIO.setup(p,GPIO.OUT)
+            
+        self.setMicrostepping(self.micro_stepping)
         
     def setMicrostepping(self, mstep):
         microstepping_map = {1: (0, 0, 0),
@@ -32,35 +39,42 @@ class StepperCtrl:
                                   16: (0, 0, 1),
                                   32: (1, 0, 1)}
         self.micro_stepping = mstep
-        GPIO.output(self.res_pins, microstepping_map[mstep])
+        for p in self.res_pins:
+          GPIO.output(p, microstepping_map[mstep])
         
     
     def doSteps(self, dirs, steps, stepDelay=0.0001):
         maxSteps=max(dirs)
-        
+        chCnt = len(steps)
         GPIO.output(self.dir_pins, dirs)
         
         # Compute indices where we have to do a step
         step_pos = []
-        for s in len(steps):
-            steps_pos[s] = np.linspace(0,maxSteps,steps[s])
+        for s in range(chCnt):
+            st = np.abs(steps[s])
+            step_pos.append(np.linspace(0,maxSteps,st))
             
         # Execute steps
         for i in range(maxSteps):
-            for s in len(steps):
-                if i >= steps_pos[s]:                    
+            for s in range(chCnt):
+                if i >= step_pos[s][0]:                    
                     GPIO.output(self.step_pins[s], True)
                     time.sleep(stepDelay)
                     GPIO.output(self.step_pins[s], False)
                     time.sleep(stepDelay)
+                    step_pos[s] = step_pos[s][1:]
     
 class ServoCtrl:
     def __init__(self, pwm_pin, ctrl_freq=50, init_duty_cycle=0.1):
         self.ctrl_freq=ctrl_freq
-        self.pwm = GPIO.PWM(pwm_pin, ctrl_freq)
-        self.pwm.start(init_duty_cycle)
+        self.pwm_pin=pwm_pin
+        
+    def initGPIO(self):
+        GPIO.setup(self.pwm_pin,GPIO.OUT)          
+        self.pwm = GPIO.PWM(self.pwm_pin, self.ctrl_freq)
+        self.pwm.start(1)
         
         
-    def moveTo(self, duty_cycle, delay=0.01):
-        self.pwm.ChangeDutyCycle(duty_cycle)
+    def moveTo(self, duty_cycle, delay=1):
+        self.pwm.ChangeDutyCycle(100)
         time.sleep(delay)
