@@ -83,11 +83,11 @@ class BasePlotter:
         self.speed = s
 
 import importlib
-motorlib_loader = importlib.find_loader('RpiMotorLib')
+motorlib_loader = importlib.find_loader('RPi.GPIO')
 if motorlib_loader is None:
-    print("RpiMotorLib not found. HardwarePlotter not available.")
+    print("RPi.GPIO not found. HardwarePlotter not available.")
 else:
-    from RpiMotorLib import RpiMotorLib, rpiservolib
+    from . import motorctrl
     
     class HardwarePlotter(BasePlotter):
         def __init__(self, calib):        
@@ -95,34 +95,24 @@ else:
             dir_pins  = config.PLOTTER_HARDWARE_CONFIG["dir_pins"]
             step_pins = config.PLOTTER_HARDWARE_CONFIG["step_pins"]
             res_pins = config.PLOTTER_HARDWARE_CONFIG["res_pins"]
+            micro_stepping = config.PLOTTER_HARDWARE_CONFIG["micro_stepping"]
             
-            self.res_type = "Full"
-            self.res_type_map = {
-                "Full": 1,
-                "Half": 1/2.0,
-                "1/4":  1/4.0,
-                "1/8":  1/8.0,
-                "1/16": 1/16.0,
-                "1/32": 1/32.0
-            }
-            self.stepper = [
-                RpiMotorLib.A4988Nema(dir_pins[0], step_pins[0], res_pins, "DRV8825"),
-                RpiMotorLib.A4988Nema(dir_pins[1], step_pins[1], res_pins, "DRV8825")
-            ]
+            self.steppers = motorctrl.StepperCtrl(dir_pins, step_pins, [res_pins for i in range(2)],micro_stepping=micro_stepping)
              
-            self.servo = rpiservolib.SG90servo("servoone", 50, 3, 11)
-            self.servo_pin = config.PLOTTER_HARDWARE_CONFIG["servo_pin"]
+            servo_pin = config.PLOTTER_HARDWARE_CONFIG["servo_pin"]
             self.servo_pos_up = config.PLOTTER_HARDWARE_CONFIG["servo_pos_up"]
             self.servo_pos_down= config.PLOTTER_HARDWARE_CONFIG["servo_pos_down"]
+            
+            self.servo = motorctrl.ServoCtrl(servo_pin, init_duty_cycle=self.servo_pos_up)
             
             BasePlotter.__init__(self, calib)
             
         def penUp(self):
-            self.servo.servo_move(self.servo_pin, self.servo_pos_up, 1, False, 0.01)
+            self.servo.moveTo(self.servo_pos_up)
             super().penUp()
             
         def penDown(self): 
-            self.servo.servo_move(self.servo_pin, self.servo_pos_down, 1, False, 0.01)
+            self.servo.moveTo(self.servo_pos_down)
             super().penDown()
                 
         def goToPos(self, targetPos):
@@ -148,8 +138,7 @@ else:
                 deltaCordLength = newCordLength - self.currCordLength
                 deltaCordLength *= self.calib.stepsPerMM
                 
-                for i in range(2):
-                    self.stepper[i].motor_go(deltaCordLength[i]>0, self.res_type, int(deltaCordLength[i]/self.res_type_map[self.res_type]), 0.005, True, 0.05)
+                self.steppers.doSteps(bool(deltaCordLength>0), int(deltaCordLength*self.steppers.micro_stepping))
 
                 self.currCordLength = newCordLength
 
