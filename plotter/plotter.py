@@ -69,7 +69,7 @@ class BasePlotter:
         if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
             print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
             exit(1)
-            
+        print("Pos: %d %d" % (targetPos[0], targetPos[1]))
         self.currPos = targetPos
         
     def penUp(self):
@@ -105,8 +105,8 @@ else:
                 print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
                 exit(1)
                 
-            # print("Move to %f x %f"%(targetPos[0],targetPos[1]))
-            #sys.stdout.flush()
+            print("Move to %f x %f"%(targetPos[0],targetPos[1]))
+            sys.stdout.flush()
 
             # Bresenham line algorithm
             d = np.abs(targetPos - self.currPos)/self.calib.resolution
@@ -117,24 +117,28 @@ else:
                     s[i] = -1
             err = d[0] + d[1]
             e2 = 0
-
+            
+            all_steps=[]
+            all_dirs=[]
+            
             while(True):
                 newCordLength = self.calib.point2CordLength(self.currPos)
                 deltaCordLength = newCordLength - self.currCordLength
                 deltaCordLength *= self.calib.stepsPerMM
+                self.currCordLength = newCordLength
                 
                 dirs = (deltaCordLength>0).tolist()
                 dirs = [int(d) for d in dirs]
                 
                 steps = self.steppers.micro_stepping*deltaCordLength
                 steps = [int(np.abs(i)) for i in steps.tolist()]
-                self.steppers.doSteps(dirs, steps)
- 
-                self.currCordLength = newCordLength
+                
+                all_steps.append(steps)
+                all_dirs.append(dirs)                
 
                 # print("Set %f, %f"%(self.currPos[0],self.currPos[1]))
-                # print("Length %f, %f"%(newCordLength[0],newCordLength[1]))
-                # print("Steps: %d %d" % (deltaCordLength[0],deltaCordLength[1]))
+                print("Length %f, %f"%(newCordLength[0],newCordLength[1]))
+                #print("Steps: %d %d" % (deltaCordLength[0],deltaCordLength[1]))
                 # print("Dist %f" % (np.linalg.norm(targetPos - self.currPos)))
                 # sys.stdout.flush()
                 
@@ -149,6 +153,9 @@ else:
                 if e2 < d[0]:
                     err += d[0]
                     self.currPos[1] += s[1]*self.calib.resolution
+                    
+            for i in range(len(all_steps)):
+                self.steppers.doSteps(all_dirs[i], all_steps[i])
                     
         def processQueueAsync(self):
             print("Plotter thread started")

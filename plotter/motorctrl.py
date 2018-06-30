@@ -47,6 +47,10 @@ class StepperCtrl:
         
     
     def doSteps(self, dirs, steps, stepDelay=0.0001):
+    
+        print("Steps: %d %d" % (steps[0],steps[1]))
+        print("Dirs: %d %d" %(dirs[0], dirs[1]))
+        
         maxSteps=max(steps)
         chCnt = len(steps)
         GPIO.output(self.dir_pins, dirs)
@@ -61,10 +65,9 @@ class StepperCtrl:
             for s in range(chCnt):
                 if step_pos[s][0] - i  <= 0.5:                    
                     GPIO.output(self.step_pins[s], True)
-                    time.sleep(stepDelay)
                     GPIO.output(self.step_pins[s], False)
-                    time.sleep(stepDelay)
                     step_pos[s] = step_pos[s][1:]
+                    time.sleep(stepDelay)
     
 class ServoCtrl:
     def __init__(self, pwm_pin, ctrl_freq=50, init_duty_cycle=0.1):

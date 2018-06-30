@@ -30,7 +30,7 @@ if __name__ == '__main__':
     calib_len = np.array([100.0,950.0])
     calib.computeCalibration(base,
                              calib_len,
-                             stepsPerMM=config.PLOTTER_HARDWARE_CONFIG["steps_per_mm"],
+                             stepsPerMM=config.PLOTTER_HARDWARE_CONFIG["full_steps_per_mm"],
                              resolution=config.PLOTTER_HARDWARE_CONFIG["movement_resolution"])
     print(calib)
 
@@ -51,16 +51,16 @@ if __name__ == '__main__':
     
     plotter.workerQueue.put("G28")
     
-    im = imageio.imread('imageio:chelsea.png')
+    #im = imageio.imread('imageio:chelsea.png')
     # im = imageio.imread('catsmall.png')
     #im = imageio.imread('test.png')
     
-    im = im.mean(axis = 2)
+    #im = im.mean(axis = 2)
     
-    gen = gcode_generators.BinaryGenerator()
-    gen.params["scale"] = 1
-    gen.params["offset"] = [0,0]
-    gcode = gen.convertImage(im > 120)
+    #gen = gcode_generators.BinaryGenerator()
+    #gen.params["scale"] = 1
+    #gen.params["offset"] = [0,0]
+    #gcode = gen.convertImage(im > 120)
     
     # gen = gcode_generators.SinWaveGenerator()
     # gen.params["scale"] = 2
@@ -72,12 +72,12 @@ if __name__ == '__main__':
     # gen.params["offset"] = [10,10]
     # gcode = gen.convertImage(im)    
     
-    print("Postprocessing gcode...")
-    gcode = gcode_generators.postProcessGCode(gcode, minSegmentLen=1)
+    #print("Postprocessing gcode...")
+    #gcode = gcode_generators.postProcessGCode(gcode, minSegmentLen=1)
     
-    print("Saving gcode...")
-    with open('example.gcode', 'w') as the_file:
-        the_file.write("\n".join(gcode))
+    #print("Saving gcode...")
+    #with open('example.gcode', 'w') as the_file:
+    #    the_file.write("\n".join(gcode))
         
     print("Executing gcode...")
     plotter.executeGCodeFile("example.gcode")
