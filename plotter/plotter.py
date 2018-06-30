@@ -20,7 +20,7 @@ class BasePlotter:
         self.calib = calib
         self.currPos  = np.zeros((2,))
         self.currCordLength = calib.point2CordLength(self.currPos)
-        self.speed = 1
+        self.speed = 10000
         self.penIsDown = False
         self.workerProcess.start()
         
@@ -54,6 +54,9 @@ class BasePlotter:
     def executeCmd(self, cmd):
         if cmd.startswith("G0"):
             d = gcode_generators.decodeGCode(cmd)
+            if "S" in d:
+              self.setSpeed(d["S"])
+              
             self.goToPos([d["X"], d["Y"]])
         elif cmd.startswith("G28"):
             self.goToPos([0,0])
@@ -94,8 +97,9 @@ else:
     
     class HardwarePlotter(BasePlotter):
         def __init__(self, calib):
+            self.servo_pos_up = config.PLOTTER_HARDWARE_CONFIG["servo_pos_up"]
+            self.servo_pos_down= config.PLOTTER_HARDWARE_CONFIG["servo_pos_down"]
             BasePlotter.__init__(self, calib)
-            self.mcq = MotorCtrlQueue()
             
         def penUp(self):
             self.mcq.queuePenPos(self.servo_pos_up)
@@ -124,14 +128,13 @@ else:
             e2 = 0
             
             while(True):
+                #print("Pos: %d %d" %(self.currPos[0], self.currPos[1]))
                 newCordLength = self.calib.point2CordLength(self.currPos)
                 deltaCordLength = newCordLength - self.currCordLength
                 deltaCordLength *= self.calib.stepsPerMM
                 self.currCordLength = newCordLength
-                
-                signedSteps = self.steppers.micro_stepping*deltaCordLength
                    
-                self.mcq.queueStepperMove(signedSteps)
+                self.mcq.queueStepperMove(deltaCordLength, self.speed)
                 
                 # Are we close to our target point ?
                 if(np.linalg.norm(targetPos - self.currPos) < self.calib.resolution):
@@ -148,6 +151,7 @@ else:
                     
         def processQueueAsync(self):
             print("Plotter thread started")
+            self.mcq = MotorCtrlQueue()
             self.mcq.start()
             
             i = 0       
@@ -155,13 +159,13 @@ else:
             start = time.time()
             while(item is not None):
             
+                print("Processing cmd: %s" % item)
                 self.executeCmd(item)
                 
                 i+=1
                 if i % 1000 == 0:
                     print("Processed %d commands. %f ms per cmd. " % (i, (time.time()- start)*1000/i))
-                    
-                self.workerQueue.task_done()    
+                       
                 item = self.workerQueue.get()
             
             
@@ -176,7 +180,7 @@ else:
     class MotorCtrlQueue():
         def __init__(self):
             self.workerProcessSteps = Process(target=runMovementExecutor, args=(self,))
-            self.workerQueueSteps = Queue(1000)
+            self.workerQueueSteps = Queue(100)
             
         def start(self):
             self.workerProcessSteps.start()
@@ -189,7 +193,7 @@ else:
             
         def processMovementAsync(self):
             print("Movement thread started")
-            
+            sys.stdout.flush()
             from . import motorctrl
             motorctrl.initMotorCtrl()
             
@@ -211,26 +215,28 @@ else:
             self.steppers.initGPIO()
             self.servo.initGPIO()
             
+            print("Waiting for movements")
             item = self.workerQueueSteps.get()
             start = time.time()
             while(item is not None):
                 
-                id, param = item
+                id = item[0]
                 
                 # Move stepper
                 if id == 0:
-                    unsigned_steps = [int(np.abs(i)) for i in param]
-                    dirs = [int(i>0) for i in param]
-                    self.steppers.doSteps(dirs, unsigned_steps)
+                   #print("Execute steps %d %d" % (param[0], param[1]))
+                    unsigned_steps = [int(np.abs(i)) for i in item[1]]
+                    dirs = [int(i>0) for i in item[1]]
+                    self.steppers.doSteps(dirs, unsigned_steps, 1/item[2])
                 # Move pen
                 elif id == 1:
-                    self.servo.moveTo(param)
+                    #print("Execute pen move to %d"% (param))
+                    self.servo.moveTo(item[1])
                 else:
                     print("Unknown value")
                     exit(1)
                     
-                    
-                self.workerQueueSteps.task_done()    
+                       
                 item = self.workerQueueSteps.get()
             
             motorctrl.cleanup()    
@@ -240,8 +246,8 @@ else:
         def queuePenPos(self, pos):
             self.workerQueueSteps.put((1, pos))
             
-        def queueStepperMove(self, move):
-            self.workerQueueSteps.put((0, move))
+        def queueStepperMove(self, move, speed):
+            self.workerQueueSteps.put((0, move, speed))
             
 try:
     matplotlib_loader = importlib.find_loader('matplotlib')

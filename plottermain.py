@@ -30,7 +30,7 @@ if __name__ == '__main__':
     calib_len = np.array([100.0,950.0])
     calib.computeCalibration(base,
                              calib_len,
-                             stepsPerMM=config.PLOTTER_HARDWARE_CONFIG["full_steps_per_mm"],
+                             stepsPerMM=config.PLOTTER_HARDWARE_CONFIG["steps_per_mm"],
                              resolution=config.PLOTTER_HARDWARE_CONFIG["movement_resolution"])
     print(calib)
 
@@ -50,6 +50,11 @@ if __name__ == '__main__':
             exit(1)
     
     plotter.workerQueue.put("G28")
+    plotter.workerQueue.put("M3")
+    plotter.workerQueue.put("M4")
+    plotter.workerQueue.put("G0 X100 Y100 S20000")
+    plotter.workerQueue.put("G0 X100 Y0 S10000")
+    plotter.workerQueue.put("G0 X100 Y100 S5000")
     
     #im = imageio.imread('imageio:chelsea.png')
     # im = imageio.imread('catsmall.png')
@@ -79,8 +84,8 @@ if __name__ == '__main__':
     #with open('example.gcode', 'w') as the_file:
     #    the_file.write("\n".join(gcode))
         
-    print("Executing gcode...")
-    plotter.executeGCodeFile("example.gcode")
+    #print("Executing gcode...")
+    #plotter.executeGCodeFile("example.gcode")
     
 
     plotter.shutdown()

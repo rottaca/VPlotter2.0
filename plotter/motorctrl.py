@@ -46,7 +46,7 @@ class StepperCtrl:
           GPIO.output(p, microstepping_map[mstep])
         
     
-    def doSteps(self, dirs, steps, stepDelay=0.0001):
+    def doSteps(self, dirs, steps, stepDelay=0.00000001):
     
         print("Steps: %d %d" % (steps[0],steps[1]))
         print("Dirs: %d %d" %(dirs[0], dirs[1]))
@@ -81,6 +81,6 @@ class ServoCtrl:
         self.pwm.start(self.init_duty_cycle)
         
         
-    def moveTo(self, duty_cycle, delay=0.01):
+    def moveTo(self, duty_cycle, delay=0.3):
         self.pwm.ChangeDutyCycle(duty_cycle)
         time.sleep(delay)
