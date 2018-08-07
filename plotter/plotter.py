@@ -54,10 +54,14 @@ class BasePlotter:
     def executeCmd(self, cmd):
         if cmd.startswith("G0"):
             d = gcode_generators.decodeGCode(cmd)
+            if not d:
+              return
+              
             if "S" in d:
               self.setSpeed(d["S"])
               
-            self.goToPos([d["X"], d["Y"]])
+            self.goToPos([d.get("X",self.currPos[0]), d.get("Y",self.currPos[1])])
+            
         elif cmd.startswith("G28"):
             self.goToPos([0,0])
         elif cmd.startswith("M3"):
@@ -65,8 +69,8 @@ class BasePlotter:
         elif cmd.startswith("M4"):
             self.penUp()
         else:
-            print("Unexpected type read. Failed to process command.")
-            exit(0)
+            print("Unexpected cmd type. Failed to process command.")
+            #exit(0)
             
     def goToPos(self, targetPos):
         if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
@@ -114,6 +118,8 @@ else:
                 print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
                 exit(1)
                 
+            print("Go To Pos: %d %d" % (targetPos[0], targetPos[1]))
+            
             #print("Move to %f x %f"%(targetPos[0],targetPos[1]))
             #sys.stdout.flush()
 
@@ -128,12 +134,13 @@ else:
             e2 = 0
             
             while(True):
-                #print("Pos: %d %d" %(self.currPos[0], self.currPos[1]))
+                print("Pos: %d %d" %(self.currPos[0], self.currPos[1]))
                 newCordLength = self.calib.point2CordLength(self.currPos)
                 deltaCordLength = newCordLength - self.currCordLength
                 deltaCordLength *= self.calib.stepsPerMM
                 self.currCordLength = newCordLength
-                   
+                print("cord len: %d %d" %(newCordLength[0], newCordLength[1]))
+                print("deltaCordLength: %d %d" %(deltaCordLength[0], deltaCordLength[1]))
                 self.mcq.queueStepperMove(deltaCordLength, self.speed)
                 
                 # Are we close to our target point ?
@@ -224,9 +231,16 @@ else:
                 
                 # Move stepper
                 if id == 0:
-                   #print("Execute steps %d %d" % (param[0], param[1]))
+                    #print("Execute steps %d %d" % (item[1][0], item[1][1]))
+                   
                     unsigned_steps = [int(np.abs(i)) for i in item[1]]
-                    dirs = [int(i>0) for i in item[1]]
+                    dirs = [int(item[1][0]>0), int(item[1][1]<0)]
+                    
+                    if config.PLOTTER_HARDWARE_CONFIG["invert_step_dir"][0]:
+                      dirs[0] = (~dirs[0] & 0x01)
+                    if config.PLOTTER_HARDWARE_CONFIG["invert_step_dir"][1]:
+                      dirs[1] = (~dirs[1] & 0x01)
+                      
                     self.steppers.doSteps(dirs, unsigned_steps, 1/item[2])
                 # Move pen
                 elif id == 1:

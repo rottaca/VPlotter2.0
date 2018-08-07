@@ -18,7 +18,9 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='VPlotter python implementation.')
     parser.add_argument('--backend', choices={"hw","sw"}, default="sw", help="Which backend should be used? Simulation or hardware plotter?")
-
+    parser.add_argument('--interactive', action='store_true')
+    parser.add_argument('--calib', nargs=2, type=float)
+    
     args=parser.parse_args()
     print(args)
     # pr = cProfile.Profile()
@@ -27,7 +29,7 @@ if __name__ == '__main__':
     calib = utils.Calibration()
         
     base = config.PLOTTER_HARDWARE_CONFIG["base_width"]
-    calib_len = np.array([100.0,950.0])
+    calib_len = np.array(args.calib)
     calib.computeCalibration(base,
                              calib_len,
                              stepsPerMM=config.PLOTTER_HARDWARE_CONFIG["steps_per_mm"],
@@ -49,12 +51,23 @@ if __name__ == '__main__':
             print("Simulation plotter backend not available!")
             exit(1)
     
+    
     plotter.workerQueue.put("G28")
-    plotter.workerQueue.put("M3")
-    plotter.workerQueue.put("M4")
-    plotter.workerQueue.put("G0 X100 Y100 S20000")
-    plotter.workerQueue.put("G0 X100 Y0 S10000")
-    plotter.workerQueue.put("G0 X100 Y100 S5000")
+    
+    if args.interactive:
+      import sys
+      
+      for line in sys.stdin:
+        if len(line) == 0:
+          break
+        plotter.workerQueue.put(line)
+        
+      
+        
+      
+    #plotter.workerQueue.put("M3")
+    #plotter.workerQueue.put("M4")
+    #plotter.workerQueue.put("G0 X100 Y0 S10000")
     
     #im = imageio.imread('imageio:chelsea.png')
     # im = imageio.imread('catsmall.png')

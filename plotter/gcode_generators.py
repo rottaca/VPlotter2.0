@@ -17,10 +17,17 @@ def GCode_down():
 def decodeGCode(gcode):
     params = gcode.split()
     data = {}
-    for p in params:
-        val = float(p[1:])
-        key = p[0]
-        data[key] = val
+    try:
+      for p in params:
+          val = float(p[1:])
+          key = p[0]
+          data[key] = val
+          
+    except:
+    
+      print("Failed to decode command.")
+      return {}
+      
     return data
 
 def postProcessGCode(gcode, minSegmentLen=1):
