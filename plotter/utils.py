@@ -29,13 +29,17 @@ Origin: {}
 Mass: {}""".format(str(self.base), str(self.origin), str(self.mass))
         
     def cordLength2Point(self, l):
-        x = (self.base*self.base+l[0]*l[0]-l[1]*l[1])/(2*self.base)
-        y = np.sqrt(l[1]*l[1] - (self.base-x)*(self.base-x))
+        x = (self.base**2 + l[0]**2 - l[1]**2)/(2*self.base)
+        y = np.sqrt(l[1]**2 - (self.base - x)**2)
         return np.array((x,y))
         
     def point2CordLength(self, p):
-        l1 = np.linalg.norm(p + self.origin)
-        l2 = np.linalg.norm(p + self.origin - np.array((self.base, 0)))
+        p_ = p + self.origin
+        l1 = np.sqrt(p_[0]**2 + p_[1]**2)
+        l2 = np.sqrt((self.base - p_[0])**2 + p_[1]**2)
+        #l2 = np.linalg.norm([self.base - p_[0], p_[1]])
+        print(p)
+        print(p_)
         return np.array((l1,l2))
         
     def computeCordStress(self, l, p):

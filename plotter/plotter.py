@@ -241,7 +241,7 @@ else:
                     if config.PLOTTER_HARDWARE_CONFIG["invert_step_dir"][1]:
                       dirs[1] = (~dirs[1] & 0x01)
                       
-                    self.steppers.doSteps(dirs, unsigned_steps, 1/item[2])
+                    self.steppers.doSteps(dirs, unsigned_steps, 1/item[2]*micro_stepping)
                 # Move pen
                 elif id == 1:
                     #print("Execute pen move to %d"% (param))

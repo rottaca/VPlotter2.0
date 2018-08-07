@@ -59,14 +59,17 @@ class StepperCtrl:
         step_pos = []
         for s in range(chCnt):
             step_pos.append(np.linspace(0,maxSteps-1,steps[s]))
-            
+        
+        
         # Execute steps
         for i in range(maxSteps):
             for s in range(chCnt):
-                if step_pos[s][0] - i  <= 0.5:                    
+                if step_pos[s].shape[0] > 0 and step_pos[s][0] - i  <= 0.5:                    
                     GPIO.output(self.step_pins[s], True)
                     GPIO.output(self.step_pins[s], False)
-                    step_pos[s] = step_pos[s][1:]
+                    
+                    step_pos[s] = np.delete(step_pos[s], 0, 0) 
+                    
                     time.sleep(stepDelay)
     
 class ServoCtrl:
