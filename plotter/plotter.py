@@ -52,6 +52,7 @@ class BasePlotter:
         exit(0)
     
     def executeCmd(self, cmd):
+        print("Processing command: %s" % cmd)
         if cmd.startswith("G0"):
             d = gcode_generators.decodeGCode(cmd)
             if not d:
@@ -76,7 +77,7 @@ class BasePlotter:
         if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
             print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
             exit(1)
-        print("Pos: %d %d" % (targetPos[0], targetPos[1]))
+        print("Target Pos: %d %d" % (targetPos[0], targetPos[1]))
         self.currPos = targetPos
         
     def penUp(self):
@@ -86,7 +87,7 @@ class BasePlotter:
         self.penIsDown = True
         
     def setSpeed(self, s):
-        # print("Set speed to %f" % s)
+        print("Set speed to %f" % s)
         self.speed = s
 
 import importlib
@@ -118,7 +119,7 @@ else:
                 print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
                 exit(1)
                 
-            print("Go To Pos: %d %d" % (targetPos[0], targetPos[1]))
+            #print("Convert movement to %d %d to steps." % (targetPos[0], targetPos[1]))
             
             #print("Move to %f x %f"%(targetPos[0],targetPos[1]))
             #sys.stdout.flush()
@@ -134,13 +135,20 @@ else:
             e2 = 0
             
             while(True):
-                print("Pos: %d %d" %(self.currPos[0], self.currPos[1]))
                 newCordLength = self.calib.point2CordLength(self.currPos)
                 deltaCordLength = newCordLength - self.currCordLength
-                deltaCordLength *= self.calib.stepsPerMM
-                self.currCordLength = newCordLength
-                print("cord len: %d %d" %(newCordLength[0], newCordLength[1]))
-                print("deltaCordLength: %d %d" %(deltaCordLength[0], deltaCordLength[1]))
+                
+                #print("---------- compute new step block ------------")
+                #print("Current pos: %f %f" %(self.currPos[0], self.currPos[1]))
+                #print("cord len: %f %f" %(newCordLength[0], newCordLength[1]))
+                #print("deltaCordLength: %f %f" %(deltaCordLength[0], deltaCordLength[1]))
+                
+                
+                # Round steps to integer
+                deltaCordLength = (deltaCordLength*self.calib.stepsPerMM).astype(int)
+                # Used rounded length as new lenth
+                self.currCordLength = self.currCordLength + deltaCordLength/self.calib.stepsPerMM
+                 
                 self.mcq.queueStepperMove(deltaCordLength, self.speed)
                 
                 # Are we close to our target point ?
@@ -166,7 +174,7 @@ else:
             start = time.time()
             while(item is not None):
             
-                print("Processing cmd: %s" % item)
+                #print("Processing cmd: %s" % item)
                 self.executeCmd(item)
                 
                 i+=1

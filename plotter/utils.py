@@ -38,8 +38,8 @@ Mass: {}""".format(str(self.base), str(self.origin), str(self.mass))
         l1 = np.sqrt(p_[0]**2 + p_[1]**2)
         l2 = np.sqrt((self.base - p_[0])**2 + p_[1]**2)
         #l2 = np.linalg.norm([self.base - p_[0], p_[1]])
-        print(p)
-        print(p_)
+        #print(p)
+        #print(p_)
         return np.array((l1,l2))
         
     def computeCordStress(self, l, p):

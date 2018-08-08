@@ -35,12 +35,12 @@ class StepperCtrl:
         self.setMicrostepping(self.micro_stepping)
         
     def setMicrostepping(self, mstep):
-        microstepping_map = {1: (0, 0, 0),
-                                  2: (1, 0, 0),
-                                  4: (0, 1, 0),
-                                  8: (1, 1, 0),
-                                  16: (0, 0, 1),
-                                  32: (1, 0, 1)}
+        microstepping_map = { 1: (0, 0, 0),
+                              2: (1, 0, 0),
+                              4: (0, 1, 0),
+                              8: (1, 1, 0),
+                             16: (0, 0, 1),
+                             32: (1, 0, 1)}
         self.micro_stepping = mstep
         for p in self.res_pins:
           GPIO.output(p, microstepping_map[mstep])
@@ -48,8 +48,8 @@ class StepperCtrl:
     
     def doSteps(self, dirs, steps, stepDelay=0.00000001):
     
-        print("Steps: %d %d" % (steps[0],steps[1]))
-        print("Dirs: %d %d" %(dirs[0], dirs[1]))
+        #print("Steps: %d %d" % (steps[0],steps[1]))
+        #print("Dirs: %d %d" %(dirs[0], dirs[1]))
         
         maxSteps=max(steps)
         chCnt = len(steps)
