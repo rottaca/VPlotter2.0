@@ -20,7 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('--backend', choices={"hw","sw"}, default="sw", help="Which backend should be used? Simulation or hardware plotter?")
     parser.add_argument('--interactive', action='store_true')
     parser.add_argument('--runfile', type=str)
-    parser.add_argument('--calib', nargs=2, type=float)
+    parser.add_argument('--calib', nargs=2, type=float, required=True)
     
     args=parser.parse_args()
     print(args)

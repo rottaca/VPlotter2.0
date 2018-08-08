@@ -2,9 +2,12 @@ import scipy as sp
 import numpy as np
 import imageio
 
-def GCode_goTo(p):
-    return "G0 X%f Y%f" % (p[0],p[1])
-
+def GCode_goTo(p, s=None):
+    if s is not None:
+        return "G0 X%f Y%f S%f" % (p[0],p[1], s)
+    else:
+        return "G0 X%f Y%f" % (p[0],p[1])
+        
 def GCode_home():
     return "G28"
 
@@ -112,7 +115,8 @@ class BinaryGenerator(GeneratorBase):
             img = img.mean(axis = 2)
         
         gcode = [GCode_up(), GCode_home()]
-        
+        speed_fast = 300000
+        speed_slow = 50000
         drawing = False
         lastDrawPos = [0,0]
         lastY = 0
@@ -122,7 +126,7 @@ class BinaryGenerator(GeneratorBase):
             
             if y != lastY and drawing:
                 pScreen = lastDrawPos*self.params["scale"] + self.params["offset"]
-                gcode.append(GCode_goTo(pScreen))
+                gcode.append(GCode_goTo(pScreen,speed_slow))
                 gcode.append(GCode_up())
                 drawing = False
                 
@@ -133,13 +137,13 @@ class BinaryGenerator(GeneratorBase):
             if pixel > 0:
                 if not drawing:
                     pScreen = pImg*self.params["scale"] + self.params["offset"]
-                    gcode.append(GCode_goTo(pScreen))
+                    gcode.append(GCode_goTo(pScreen,speed_fast))
                     gcode.append(GCode_down())
                     drawing = True
             else:
                 if drawing:
                     pScreen = lastDrawPos*self.params["scale"] + self.params["offset"]
-                    gcode.append(GCode_goTo(pScreen))
+                    gcode.append(GCode_goTo(pScreen,speed_slow))
                     gcode.append(GCode_up())
                     drawing = False
                
