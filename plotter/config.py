@@ -7,7 +7,7 @@ PLOTTER_HARDWARE_CONFIG={
     "invert_step_dir": (0, 0),
     "micro_stepping": 16,
     "servo_pin"     : 17,
-    "servo_pos_up"  : 4,
+    "servo_pos_up"  : 5,
     "servo_pos_down": 7,
     "base_width"    : 680,
     "movement_resolution": 1,

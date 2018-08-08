@@ -19,6 +19,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='VPlotter python implementation.')
     parser.add_argument('--backend', choices={"hw","sw"}, default="sw", help="Which backend should be used? Simulation or hardware plotter?")
     parser.add_argument('--interactive', action='store_true')
+    parser.add_argument('--runfile', type=str)
     parser.add_argument('--calib', nargs=2, type=float)
     
     args=parser.parse_args()
@@ -61,6 +62,8 @@ if __name__ == '__main__':
         if len(line) == 0:
           break
         plotter.workerQueue.put(line)
+    elif args.runfile is not None:
+      plotter.executeGCodeFile(args.runfile)
         
       
         
