@@ -259,7 +259,7 @@ class SinWaveGenerator(GeneratorBase):
                 lastY = y
                 
         return gcode        
-        
+
 class ArcGenerator(GeneratorBase):
     def __init__(self):
         GeneratorBase.__init__(self)

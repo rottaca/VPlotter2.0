@@ -1,8 +1,21 @@
-## Under construction!
+# *Under construction!*
 
 # VPlotter2.0
 A complete rework of my older VPlotter software. Now everything is written in Python 3 and running completely on a Raspberry Pi.
 The software may get a small web ui in the future.
+
+
+# Images
+
+### Simulation of plotter with python package "matplotlib"
+
+![](/doc/img/mona_sim_full.PNG)
+
+Closer looks on one of the rendering algorithms
+
+![](/doc/img/mona_sim_close_1.PNG)
+![](/doc/img/mona_sim_close_2.PNG)
+![](/doc/img/mona_sim_close_3.PNG)
 
 
 # Setup instructions
