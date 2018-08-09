@@ -74,9 +74,9 @@ class BasePlotter:
             #exit(0)
             
     def goToPos(self, targetPos):
-        if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
-            print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
-            exit(1)
+        #if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
+        #    print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
+        #    exit(1)
         print("Target Pos: %d %d" % (targetPos[0], targetPos[1]))
         self.currPos = targetPos
         
@@ -115,9 +115,9 @@ else:
             #super().penDown()
                 
         def goToPos(self, targetPos):
-            if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
-                print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
-                exit(1)
+            # if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
+                # print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
+                # exit(1)
                 
             #print("Convert movement to %d %d to steps." % (targetPos[0], targetPos[1]))
             
@@ -299,9 +299,9 @@ else:
         
         def goToPos(self, targetPos):
             
-            if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
-                print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
-                exit(1)
+            # if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
+                # print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
+                # exit(1)
                 
             if self.penIsDown:
                 self.points_x.append(self.currPos[0] + self.calib.origin[0])
