@@ -19,13 +19,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='VPlotter python implementation.')
     parser.add_argument('--backend', choices={"hw","sw"}, default="sw", help="Which backend should be used? Simulation or hardware plotter?")
     parser.add_argument('--interactive', action='store_true')
+    parser.add_argument('--non-draw-lines', action='store_true',help="If the software plotter is used, non-drawing moves can be visualized in red.")
+    parser.add_argument('--sim-speed', type=int, default=0.0001, help="Pause between processed commands in simulation plotter.")
     parser.add_argument('--runfile', type=str)
     parser.add_argument('--calib', nargs=2, type=float, required=True)
     
     args=parser.parse_args()
     print(args)
-    # pr = cProfile.Profile()
-    # pr.enable()
     
     calib = utils.Calibration()
         
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     else:
         if hasattr(plotter, 'SimulationPlotter'):
             print("Using simulation plotter backend")
-            plotter = plotter.SimulationPlotter(calib)
+            plotter = plotter.SimulationPlotter(calib, args.sim_speed, args.non_draw_lines)
         else:
             print("Simulation plotter backend not available!")
             exit(1)

@@ -52,7 +52,7 @@ class BasePlotter:
         exit(0)
     
     def executeCmd(self, cmd):
-        print("Processing command: %s" % cmd)
+        # print("Processing command: %s" % cmd)
         if cmd.startswith("G0"):
             d = gcode_generators.decodeGCode(cmd)
             if not d:
@@ -61,10 +61,30 @@ class BasePlotter:
             if "S" in d:
               self.setSpeed(d["S"])
               
-            self.goToPos([d.get("X",self.currPos[0]), d.get("Y",self.currPos[1])])
+            self.moveToPos([d.get("X",self.currPos[0]), d.get("Y",self.currPos[1])])
+            
+        elif cmd.startswith("G2"):
+            d = gcode_generators.decodeGCode(cmd)
+            if not d:
+              return
+              
+            if "S" in d:
+              self.setSpeed(d["S"])
+            
+            if "R" not in d or ("W" not in d and "H" not in d):
+                print("Unexpected cmd type. Failed to process command.")
+                return
+                
+            if "W" in d and "H" not in d:
+                d["H"] = d["W"]
+                
+            if "H" in d and "W" not in d:
+                d["W"] = d["H"]
+                
+            self.moveArc([d.get("X",self.currPos[0]), d.get("Y",self.currPos[1])], d.get("W"), d.get("H"), d.get("A",0), d.get("B",360))
             
         elif cmd.startswith("G28"):
-            self.goToPos([0,0])
+            self.moveToPos([0,0])
         elif cmd.startswith("M3"):
             self.penDown()
         elif cmd.startswith("M4"):
@@ -73,21 +93,23 @@ class BasePlotter:
             print("Unexpected cmd type. Failed to process command.")
             #exit(0)
             
-    def goToPos(self, targetPos):
-        #if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
-        #    print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
-        #    exit(1)
-        print("Target Pos: %d %d" % (targetPos[0], targetPos[1]))
-        self.currPos = targetPos
+    def moveToPos(self, targetPos):        
+        print("Function moveToPos not implemented")
+        exit(1)
+        
+    def moveArc(self, center, size, startAngle, endAngle):
+        print("Function moveArc not implemented")
+        exit(1)
         
     def penUp(self):
-        self.penIsDown = False
+        print("Function penUp not implemented")
+        exit(1)
         
     def penDown(self):
-        self.penIsDown = True
+        print("Function penDown not implemented")
+        exit(1)
         
     def setSpeed(self, s):
-        print("Set speed to %f" % s)
         self.speed = s
 
 import importlib
@@ -114,7 +136,7 @@ else:
             self.mcq.queuePenPos(self.servo_pos_down)
             #super().penDown()
                 
-        def goToPos(self, targetPos):
+        def moveToPos(self, targetPos):
             # if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
                 # print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
                 # exit(1)
@@ -287,17 +309,20 @@ else:
     plt.ion()
     plt.show()  
     class SimulationPlotter(BasePlotter):
-        def __init__(self, calib):
+        def __init__(self, calib, sim_speed, non_drawing_moves):
             self.points_x = []
             self.points_y = []
+            self.points_x_nodraw = []
+            self.points_y_nodraw = []
             self.pen_up_x = []
             self.pen_up_y = []
             self.pen_down_x = []
             self.pen_down_y = []
-            
+            self.non_drawing_moves = non_drawing_moves
+            self.sim_speed = sim_speed
             BasePlotter.__init__(self, calib)
         
-        def goToPos(self, targetPos):
+        def moveToPos(self, targetPos):
             
             # if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
                 # print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
@@ -306,9 +331,16 @@ else:
             if self.penIsDown:
                 self.points_x.append(self.currPos[0] + self.calib.origin[0])
                 self.points_y.append(self.currPos[1] + self.calib.origin[1])
+            elif self.non_drawing_moves:
+                self.points_x_nodraw.append(self.currPos[0] + self.calib.origin[0])
+                self.points_y_nodraw.append(self.currPos[1] + self.calib.origin[1])
                 
-            super().goToPos(targetPos)
-            
+            self.currPos = targetPos
+        
+        def moveArc(self, center, size, startAngle, endAngle):
+            data = [center, size[0], size[1], startAngle, endAngle]
+        
+        
         def penUp(self):
             if self.penIsDown:
                 self.points_x.append(self.currPos[0] + self.calib.origin[0])
@@ -317,8 +349,11 @@ else:
                 self.points_y.append(np.nan)
                 self.pen_up_x.append(self.currPos[0] + self.calib.origin[0])
                 self.pen_up_y.append(self.currPos[1] + self.calib.origin[1])
-                
-            super().penUp()
+            elif self.non_drawing_moves:
+                self.points_x_nodraw.append(self.currPos[0] + self.calib.origin[0])
+                self.points_y_nodraw.append(self.currPos[1] + self.calib.origin[1])
+            
+            self.penIsDown = False
 
             
         def penDown(self):        
@@ -327,13 +362,20 @@ else:
                 self.points_y.append(self.currPos[1] + self.calib.origin[1])
                 self.pen_down_x.append(self.currPos[0] + self.calib.origin[0])
                 self.pen_down_y.append(self.currPos[1] + self.calib.origin[1])
+            elif self.non_drawing_moves:
+                self.points_x.append(self.currPos[0] + self.calib.origin[0])
+                self.points_y.append(self.currPos[1] + self.calib.origin[1])
+                self.points_x_nodraw.append(np.nan)
+                self.points_y_nodraw.append(np.nan)
                 
-            super().penDown()
+            self.penIsDown = True
 
          
         def plotCurrentState(self):
             plt.cla()
-            plt.plot(self.points_x,self.points_y)
+            if self.non_drawing_moves:
+                plt.plot(self.points_x_nodraw,self.points_y_nodraw,'r')
+            plt.plot(self.points_x,self.points_y,'b')
             plt.scatter(0,0, 20, "g")
             plt.scatter(self.calib.origin[0],self.calib.origin[1], 20,"g")
             plt.plot([0, self.calib.base, self.calib.base, 0, 0],[0, 0, 700, 700, 0])
@@ -342,7 +384,7 @@ else:
             plt.axis('equal')
             plt.gca().invert_yaxis()
             plt.draw()
-            plt.pause(0.0001)
+            plt.pause(self.sim_speed)
                 
         def processQueueAsync(self):
             print("Plotter thread started")

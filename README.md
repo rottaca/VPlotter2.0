@@ -2,16 +2,18 @@
 
 # VPlotter2.0
 A complete rework of my older VPlotter software. Now everything is written in Python 3 and running completely on a Raspberry Pi.
-The software may get a small web ui in the future.
+The software may get a small web ui in the future. At the moment, everything (gcode generation and plotting) is controlled with commandline scripts.
 
 
 # Images
 
 ### Simulation of plotter with python package "matplotlib"
 
+The orange box shows the bounding box of the plotter machine. Only left and right border are important (motor mounting positions). The green red dot indicates the calibration origion.
+
 ![](/doc/img/mona_sim_full.PNG)
 
-Closer looks on one of the rendering algorithms
+Closer looks on one of the rendering algorithms. This algorithms draws lins in horizontal, vertical and both diagonal directions. The darker a pixel is the more of these 4 layers will be drawn at the pixel position. This results in darker shaded areas for darker pixels. Zooming in in the plotter 
 
 ![](/doc/img/mona_sim_close_1.PNG)
 ![](/doc/img/mona_sim_close_2.PNG)

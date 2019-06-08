@@ -22,10 +22,10 @@ if __name__ == '__main__':
     parser.add_argument('--speed-draw', type=float, default=50000, help="Speed when printhead is drawing.")
     
     
-    parser.add_argument('--line-img-threshold-min', default=0, type=int, help="Generator line: min threshold for image.")
-    parser.add_argument('--line-img-threshold-max', default=255, type=int, help="Generator line: max threshold for image.")
-    parser.add_argument('--line-img-threshold-inv', default=False, action="store_true", help="Generator line: Invert image thresholding.")
-    parser.add_argument('--line-dirs', default=1, nargs="*", type=int, choices=[1,2,3,4], help="Generator line: List of directions that should be used for drawing: 1,2,3,4")
+    parser.add_argument('--img-threshold-min', default=0, type=int, help="Generator line, arc: min threshold for image.")
+    parser.add_argument('--img-threshold-max', default=255, type=int, help="Generator line, arc: max threshold for image.")
+    parser.add_argument('--img-threshold-inv', default=False, action="store_true", help="Generator line, arc: Invert image thresholding.")
+    parser.add_argument('--dirs', default=[1], nargs="*", type=int, choices=[1,2,3,4], help="Generator line, arc: List of directions that should be used for drawing: 1,2,3,4")
     
     args=parser.parse_args()
     print(args)
@@ -36,10 +36,10 @@ if __name__ == '__main__':
     if args.generator == "line":
         gen = gcode_generators.StraightLineGenerator()
         
-        gen.params["img_threshold_inv"] = args.line_img_threshold_inv
-        gen.params["img_threshold_min"] = args.line_img_threshold_min 
-        gen.params["img_threshold_max"] = args.line_img_threshold_max 
-        gen.params["dirs"] = args.line_dirs 
+        gen.params["img_threshold_inv"] = args.img_threshold_inv
+        gen.params["img_threshold_min"] = args.img_threshold_min 
+        gen.params["img_threshold_max"] = args.img_threshold_max 
+        gen.params["dirs"] = args.dirs 
                     
     elif args.generator == "sin":
         gen = gcode_generators.SinWaveGenerator()
@@ -48,6 +48,11 @@ if __name__ == '__main__':
         gen = gcode_generators.BoxGenerator()
     elif args.generator == "arc":
         gen = gcode_generators.ArcGenerator()
+        gen.params["img_threshold_inv"] = args.img_threshold_inv
+        gen.params["img_threshold_min"] = args.img_threshold_min 
+        gen.params["img_threshold_max"] = args.img_threshold_max 
+        gen.params["dirs"] = args.dirs 
+        
         
     gen.params["scale"] = args.scale
     gen.params["offset"] = args.offset

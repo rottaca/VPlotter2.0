@@ -66,7 +66,7 @@ def postProcessGCode(gcode, minSegmentLen=1):
     penDownNext=None
     
     for code in gcode_old:
-        if code.startswith("G0") or code.startswith("G28"):
+        if code.startswith("G0"):
             if penDownCurr is None:
                 if penDownNext is not None:
                 
@@ -91,6 +91,7 @@ def postProcessGCode(gcode, minSegmentLen=1):
                 
             gcode_curr.append(code)
             
+            # Find out bounding box of model
             d = decodeGCode(code)
             if "X" in d:
                 if d["X"] < xRange[0]:
@@ -113,7 +114,8 @@ def postProcessGCode(gcode, minSegmentLen=1):
     print("Reduced size from %d to %d lines of code. " % (init_size, len(gcode_curr)))
     print("Model bounding box is (%f, %f) x (%f, %f) mm. " % (xRange[0], yRange[0], xRange[1], yRange[1]))
     return gcode_curr
-    
+ 
+ 
     
 class GeneratorBase:
     def __init__(self):
@@ -130,9 +132,32 @@ class GeneratorBase:
     def convertImage(self, img):
         return np.array()
         
+    def px2Scr(self, p):
+        return p*self.params["scale"] + self.params["offset"]
+
+
+class SVGGenerator(GeneratorBase):
+    def __init__(self):
+        GeneratorBase.__init__(self)
+        
+    def convertImage(self, img):
+
+        if len(img.shape) == 3 and img.shape[2] > 1:
+            img = img.mean(axis = 2)
+
+        gcode = [GCode_up(), GCode_home()]
+        drawing=False
+        
+        
+        return gcode
+        
 class StraightLineGenerator(GeneratorBase):
     def __init__(self):
         GeneratorBase.__init__(self)
+        self.params["img_threshold_inv"] = False
+        self.params["img_threshold_min"] = 0
+        self.params["img_threshold_max"] = 255
+        self.params["dirs"] = [1,2,3,4]
         
     def convertImage(self, img):
         
@@ -185,11 +210,12 @@ class StraightLineGenerator(GeneratorBase):
                 y,x = index
                 
                 sameLine = False
+                # Change in x or y > 1 or not ?
                 if np.abs(x - lastX) <= 1 and np.abs(y - lastY) <= 1:
                     sameLine = True
                 
                 if not sameLine and drawing:
-                    pScreen = lastDrawPos*self.params["scale"] + self.params["offset"]
+                    pScreen = self.px2Scr(lastDrawPos)
                     gcode.append(GCode_goTo(pScreen,self.params["speed_draw"]))
                     gcode.append(GCode_up())
                     drawing = False
@@ -204,13 +230,13 @@ class StraightLineGenerator(GeneratorBase):
                     
                 if pixel >= min_val and pixel <= max_val and pixel - min_val <= float(max_val - min_val)/(dirs_drawn+1):
                     if not drawing:
-                        pScreen = pImg*self.params["scale"] + self.params["offset"]
+                        pScreen = self.px2Scr(pImg)
                         gcode.append(GCode_goTo(pScreen,self.params["speed_nodraw"]))
                         gcode.append(GCode_down())
                         drawing = True
                 else:
                     if drawing:
-                        pScreen = lastDrawPos*self.params["scale"] + self.params["offset"]
+                        pScreen = self.px2Scr(lastDrawPos)
                         gcode.append(GCode_goTo(pScreen,self.params["speed_draw"]))
                         gcode.append(GCode_up())
                         drawing = False
@@ -219,7 +245,7 @@ class StraightLineGenerator(GeneratorBase):
                     lastDrawPos = pImg
                     
             if drawing:
-                pScreen = lastDrawPos*self.params["scale"] + self.params["offset"]
+                pScreen = self.px2Scr(lastDrawPos)
                 gcode.append(GCode_goTo(pScreen,self.params["speed_draw"]))
                 gcode.append(GCode_up())
                 
@@ -241,13 +267,13 @@ class SinWaveGenerator(GeneratorBase):
         lastY = 0
         
         pImg = np.array([0,0])
-        pScreen = pImg*self.params["scale"] + self.params["offset"]
+        pScreen = self.px2Scr(pImg)
                       
         for index, pixel in np.ndenumerate(img):
             y,x = index
                         
             pImg = np.array([x,y + pixel/255*2*np.sin(x + 10*pixel/255)])
-            pScreen = pImg*self.params["scale"] + self.params["offset"]
+            pScreen = self.px2Scr(pImg)
             
             if y != lastY:
                 gcode.append(GCode_up())
@@ -263,6 +289,12 @@ class SinWaveGenerator(GeneratorBase):
 class ArcGenerator(GeneratorBase):
     def __init__(self):
         GeneratorBase.__init__(self)
+        self.params["offset circle center"] = (0,0)
+        self.params["img_threshold_inv"] = False
+        self.params["img_threshold_min"] = 0
+        self.params["img_threshold_max"] = 255
+        self.params["arc_sampling"] = 20
+        self.params["dirs"] = [1]
         
     def convertImage(self, img):
         
@@ -271,27 +303,78 @@ class ArcGenerator(GeneratorBase):
         
         gcode = [GCode_up(), GCode_home()]
         
-        lastY = 0
         
-        pImg = np.array([0,0])
-        pScreen = pImg*self.params["scale"] + self.params["offset"]
-        maxRadius = np.linalg.norm(img.shape)
+        max_val = self.params["img_threshold_max"]
+        min_val = self.params["img_threshold_min"]
+        maxRadius = int(np.linalg.norm(img.shape))
         
-        for index, pixel in np.ndenumerate(img):
-            y,x = index
-                        
-            pImg = np.array([x,y + pixel/255*2*np.sin(x + 10*pixel/255)])
-            pScreen = pImg*self.params["scale"] + self.params["offset"]
+        dirs_drawn = 0
+        for d in self.params["dirs"]:
+            pImg = np.array([0,0])
+            pScreen = self.px2Scr(pImg)
             
-            if y != lastY:
+            if d == 1:
+                offset = np.array([0,0])
+            elif d == 2:
+                offset = np.array([img.shape[1]-1,0])
+            elif d == 3:
+                offset = np.array([0,img.shape[0]-1])
+            elif d == 4:
+                offset = np.array([img.shape[1]-1,img.shape[0]-1])
+            
+            for r in range(1,maxRadius):
                 gcode.append(GCode_up())
+                drawing = False
+                lastDrawPos = [0,0]
                 
-            gcode.append(GCode_goTo(pScreen))
+                # Sample in such a way that each arc segment has the same length
+                # arc_length = 2*pi*r*radians/(2*pi)
+                # radians = arc_length/r
+                sampling = self.params["arc_sampling"]/r
+                # print(sampling)
+                
+                if d == 1:
+                    angles = np.arange(0,90,sampling)
+                elif d == 2:
+                    angles = np.arange(0,-90,-sampling)
+                elif d == 3:
+                    angles = np.arange(90,180,sampling)
+                elif d == 4:
+                    angles = np.arange(-90,-180,-sampling)
             
-            if y != lastY:
-                gcode.append(GCode_down())
-                lastY = y
-                
+                for a in angles:
+                    pImg = np.array([r*np.sin(np.radians(a)),r*np.cos(np.radians(a))])
+                    pImg = pImg + offset
+                    
+                    if pImg[0] < -0.5 or pImg[1] < -0.5 or pImg[1] >= img.shape[0]-0.5 or pImg[0] >= img.shape[1]-0.5:
+                        continue
+                        
+                    pixel = img[int(pImg[1]),int(pImg[0])]
+                                            
+                    if self.params["img_threshold_inv"]:
+                        pixel = 255 - pixel
+                        
+                    if pixel >= min_val and pixel <= max_val and pixel - min_val <= float(max_val - min_val)/(dirs_drawn+1):
+                        pScreen = self.px2Scr(pImg)
+                        gcode.append(GCode_goTo(pScreen,self.params["speed_nodraw"]))
+                        
+                        if not drawing:
+                            gcode.append(GCode_down())
+                            drawing = True
+                        
+                    else:
+                        if drawing:
+                            pScreen = self.px2Scr(lastDrawPos)
+                            gcode.append(GCode_goTo(pScreen,self.params["speed_draw"]))
+                            gcode.append(GCode_up())
+                            drawing = False
+                       
+                    if drawing:
+                        lastDrawPos = pImg           
+                    
+            
+            dirs_drawn = dirs_drawn + 1
+            
         return gcode
         
 class BoxGenerator(GeneratorBase):
@@ -311,7 +394,7 @@ class BoxGenerator(GeneratorBase):
         gcode = []
         for p in points:
             pImg = p*v + c
-            pScreen = pImg*self.params["scale"] + self.params["offset"]
+            pScreen = self.px2Scr(pImg)
             gcode.append(GCode_goTo(pScreen))
             
             if len(gcode) == 1: 
@@ -331,7 +414,7 @@ class BoxGenerator(GeneratorBase):
         lastY = 0
         
         pImg = np.array([0,0])
-        pScreen = pImg*self.params["scale"] + self.params["offset"]
+        pScreen = self.px2Scr(pImg)
                 
         for index, pixel in np.ndenumerate(img):
             if pixel > 0:
