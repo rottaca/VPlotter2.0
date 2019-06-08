@@ -52,7 +52,10 @@ Activate the virtual environment:
 
 Install our packages in the virtual environment. This may take some time:
 
-`~/vplotterenv/bin/pip3 install wheeel numpy scipy imageio matplotlib RPi.GPIO rpimotorlib`
+`~/vplotterenv/bin/pip3 install wheel numpy scipy imageio matplotlib RPi.GPIO rpimotorlib`
+
+If you have trouble with setting up scipy, try the following command:
+`sudo apt-get install python3-scipy`
 
 If you would like to use the simulation environment, that renders all drawing moves on your screen, also install the following package:
 
