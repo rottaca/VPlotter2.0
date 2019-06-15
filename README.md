@@ -58,7 +58,7 @@ After everything installed successfully, download the VPlotter repository:
 Test your installation with the software plotter:
 `python plottermain.py --backend sw --calib 300 600 --runfile monalisa.gcode`
 
-# Wifi Setup (not necessary)
+# Wifi Setup (optional)
 Install the raspap-webgui for a simple wifi hotspot with a webinterface. Also have a look on their documentation ( https://github.com/billz/raspap-webgui ).
 
 Default settings are:
