@@ -43,8 +43,5 @@ class SimplePhysicsEngine(PhysicsEngine):
         p_ = p + self.calib.origin
         l1 = np.sqrt(p_[0]**2 + p_[1]**2)
         l2 = np.sqrt((self.calib.base - p_[0])**2 + p_[1]**2)
-        #l2 = np.linalg.norm([self.calib.base - p_[0], p_[1]])
-        #print(p)
-        #print(p_)
         return np.array((l1,l2))
 

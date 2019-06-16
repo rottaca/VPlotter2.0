@@ -29,14 +29,14 @@ if __name__ == '__main__':
     if args.backend=="hw":
         if hasattr(plotter_hw, 'HardwarePlotter'):
             print("Using hardware plotter backend")
-            plotter = plotter_hw.HardwarePlotter(config.PLOTTER_HARDWARE_CONFIG, calib_len, SimplePhysicsEngine)
+            plotter = plotter_hw.HardwarePlotter(config.PLOTTER_CONFIG, calib_len, SimplePhysicsEngine)
         else:
             print("Hardware plotter backend not available!")
             exit(1)
     else:
         if hasattr(plotter_sw, 'SimulationPlotter'):
             print("Using simulation plotter backend")
-            plotter = plotter_sw.SimulationPlotter(config.PLOTTER_HARDWARE_CONFIG, calib_len, SimplePhysicsEngine, args.sim_speed, args.non_draw_lines)
+            plotter = plotter_sw.SimulationPlotter(config.PLOTTER_CONFIG, calib_len, SimplePhysicsEngine, args.sim_speed, args.non_draw_lines)
         else:
             print("Simulation plotter backend not available!")
             exit(1)

@@ -18,8 +18,8 @@ else:
     
     class HardwarePlotter(plotter_base.BasePlotter):
         def __init__(self, config, initial_lengh, physicsEngineClass):
-            self.servo_pos_up = config.PLOTTER_HARDWARE_CONFIG["servo_pos_up"]
-            self.servo_pos_down = config.PLOTTER_HARDWARE_CONFIG["servo_pos_down"]
+            self.servo_pos_up = config["servo_pos_up"]
+            self.servo_pos_down = config["servo_pos_down"]
 
             plotter_base.BasePlotter.__init__(self, config, initial_lengh, physicsEngineClass)
             
@@ -52,7 +52,7 @@ else:
             e2 = 0
             
             while(True):
-                newCordLength = self.calib.point2CordLength(self.currPos)
+                newCordLength = self.physicsEngine.point2CordLength(self.currPos)
                 deltaCordLength = newCordLength - self.currCordLength
                 
                 #print("---------- compute new step block ------------")
@@ -130,17 +130,17 @@ else:
             motorctrl.initMotorCtrl()
             
             # GPIO Pins
-            dir_pins  = self.config.PLOTTER_HARDWARE_CONFIG["dir_pins"]
-            step_pins = self.config.PLOTTER_HARDWARE_CONFIG["step_pins"]
-            res_pins = self.config.PLOTTER_HARDWARE_CONFIG["res_pins"]
-            micro_stepping = self.config.PLOTTER_HARDWARE_CONFIG["micro_stepping"]
+            dir_pins  = self.config["dir_pins"]
+            step_pins = self.config["step_pins"]
+            res_pins = self.config["res_pins"]
+            micro_stepping = self.config["micro_stepping"]
             
             self.steppers = motorctrl.StepperCtrl(dir_pins, step_pins, [res_pins for i in range(2)],micro_stepping=micro_stepping)
             
             # GPIO Pins
-            servo_pin = self.config.PLOTTER_HARDWARE_CONFIG["servo_pin"]
-            self.servo_pos_up = self.config.PLOTTER_HARDWARE_CONFIG["servo_pos_up"]
-            self.servo_pos_down= self.config.PLOTTER_HARDWARE_CONFIG["servo_pos_down"]
+            servo_pin = self.config["servo_pin"]
+            self.servo_pos_up = self.config["servo_pos_up"]
+            self.servo_pos_down= self.config["servo_pos_down"]
             
             self.servo = motorctrl.ServoCtrl(servo_pin, init_duty_cycle=self.servo_pos_up)
             
@@ -161,9 +161,9 @@ else:
                     unsigned_steps = [int(np.abs(i)) for i in item[1]]
                     dirs = [int(item[1][0]>0), int(item[1][1]<0)]
                     
-                    if self.config.PLOTTER_HARDWARE_CONFIG["invert_step_dir"][0]:
+                    if self.config["invert_step_dir"][0]:
                       dirs[0] = (~dirs[0] & 0x01)
-                    if self.config.PLOTTER_HARDWARE_CONFIG["invert_step_dir"][1]:
+                    if self.config["invert_step_dir"][1]:
                       dirs[1] = (~dirs[1] & 0x01)
                       
                     self.steppers.doSteps(dirs, unsigned_steps, 1/item[2]*micro_stepping)
