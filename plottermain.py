@@ -10,6 +10,7 @@ if __name__ == '__main__':
 
     from plotter import config
     from plotter.utils.calibration import Calibration
+    from plotter.utils.math import SimplePhysicsEngine
     
     parser = argparse.ArgumentParser(description='VPlotter python implementation.')
     parser.add_argument('--backend', choices={"hw","sw"}, default="sw", help="Which backend should be used? Simulation or hardware plotter?")
@@ -22,32 +23,25 @@ if __name__ == '__main__':
     args=parser.parse_args()
     print(args)
     
-    calib = Calibration()
-        
-    base = config.PLOTTER_HARDWARE_CONFIG["base_width"]
     calib_len = np.array(args.calib)
-    calib.computeCalibration(base,
-                             calib_len,
-                             stepsPerMM=config.PLOTTER_HARDWARE_CONFIG["steps_per_mm"],
-                             resolution=config.PLOTTER_HARDWARE_CONFIG["movement_resolution"])
-    print(calib)
+    
 
     if args.backend=="hw":
         if hasattr(plotter_hw, 'HardwarePlotter'):
             print("Using hardware plotter backend")
-            plotter = plotter_hw.HardwarePlotter(config.PLOTTER_HARDWARE_CONFIG, calib)
+            plotter = plotter_hw.HardwarePlotter(config.PLOTTER_HARDWARE_CONFIG, calib_len, SimplePhysicsEngine)
         else:
             print("Hardware plotter backend not available!")
             exit(1)
     else:
         if hasattr(plotter_sw, 'SimulationPlotter'):
             print("Using simulation plotter backend")
-            plotter = plotter_sw.SimulationPlotter(config.PLOTTER_HARDWARE_CONFIG, calib, args.sim_speed, args.non_draw_lines)
+            plotter = plotter_sw.SimulationPlotter(config.PLOTTER_HARDWARE_CONFIG, calib_len, SimplePhysicsEngine, args.sim_speed, args.non_draw_lines)
         else:
             print("Simulation plotter backend not available!")
             exit(1)
     
-    
+    print(plotter)
     plotter.workerQueue.put("G28")
     
     if args.interactive:

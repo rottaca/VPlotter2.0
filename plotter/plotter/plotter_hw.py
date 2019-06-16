@@ -17,11 +17,11 @@ if motorlib_loader is None:
 else:
     
     class HardwarePlotter(plotter_base.BasePlotter):
-        def __init__(self, config, calib):
+        def __init__(self, config, initial_lengh, physicsEngineClass):
             self.servo_pos_up = config.PLOTTER_HARDWARE_CONFIG["servo_pos_up"]
-            self.servo_pos_down= config.PLOTTER_HARDWARE_CONFIG["servo_pos_down"]
-            
-            plotter_base.BasePlotter.__init__(self, config, calib)
+            self.servo_pos_down = config.PLOTTER_HARDWARE_CONFIG["servo_pos_down"]
+
+            plotter_base.BasePlotter.__init__(self, config, initial_lengh, physicsEngineClass)
             
         def penUp(self):
             self.mcq.queuePenPos(self.servo_pos_up)

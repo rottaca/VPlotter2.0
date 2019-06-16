@@ -13,18 +13,35 @@ def processPlotterQueue(plotter):
     plotter.processQueueAsync()
     
 class BasePlotter:
-    def __init__(self, config, calib):
-        self.workerProcess = Process(target=processPlotterQueue, args=(self,))
-        self.workerQueue = Queue(1000)
-        
-        self.calib = calib
+    def __init__(self, config, initial_lengh, PhysicsEngineClass):
+        base = config["base_width"]
+        self.calib = Calibration(base,
+                                PhysicsEngineClass.calcOrigin(initial_lengh, base),
+                                stepsPerMM=config["steps_per_mm"],
+                                resolution=config["movement_resolution"])
+
+        self.config = config
+        self.physicsEngine = PhysicsEngineClass(self.config, self.calib)
         self.currPos  = np.zeros((2,))
-        self.currCordLength = calib.point2CordLength(self.currPos)
+        self.currCordLength = self.physicsEngine.point2CordLength(self.currPos)
         self.speed = 10000
         self.penIsDown = False
-        self.config = config
+
+        self.workerProcess = Process(target=processPlotterQueue, args=(self,))
+        self.workerQueue = Queue(1000)
         self.workerProcess.start()
-        
+    
+    def __str__(self):
+        return """
+{}
+
+------------ State ------------
+Current Position: {}
+Current Length:   {}
+PenState:         {}
+Current Speed:    {}
+Queue Size:       {}""".format(self.calib, self.currPos, self.currCordLength, "DOWN" if self.penIsDown else "UP", self.speed, self.workerQueue.qsize())
+
     def shutdown(self):
         print("Shutting down..")
         self.workerQueue.put(None) 
@@ -66,7 +83,7 @@ class BasePlotter:
             
         elif cmd.startswith("G28"):
             self.moveToPos([0,0])
-            
+
         elif cmd.startswith("G2"):
             d = decodeGCode(cmd)
             if not d:

@@ -19,7 +19,7 @@ else:
     plt.ion()
     plt.show()  
     class SimulationPlotter(plotter_base.BasePlotter):
-        def __init__(self, config, calib, sim_speed, non_drawing_moves):
+        def __init__(self, config, initial_lengh, physicsEngineClass, sim_speed, non_drawing_moves):
             self.points_x = []
             self.points_y = []
             self.points_x_nodraw = []
@@ -30,7 +30,8 @@ else:
             self.pen_down_y = []
             self.non_drawing_moves = non_drawing_moves
             self.sim_speed = sim_speed
-            plotter_base.BasePlotter.__init__(self, config, calib)
+            plotter_base.BasePlotter.__init__(self, config, initial_lengh, physicsEngineClass)
+
         
         def moveToPos(self, targetPos):
             
