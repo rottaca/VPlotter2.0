@@ -2,19 +2,14 @@
 if __name__ == '__main__':
     import numpy as np
     import sys
-    import random 
     import imageio
     import argparse
     
-    #import RPi.GPIO as GPIO
-    
-    #try:
-      # import cProfile
-      
-    from plotter import utils
-    from plotter import plotter
-    from plotter import gcode_generators
+    from plotter.plotter import plotter_hw
+    from plotter.plotter import plotter_sw
+
     from plotter import config
+    from plotter.utils.calibration import Calibration
     
     parser = argparse.ArgumentParser(description='VPlotter python implementation.')
     parser.add_argument('--backend', choices={"hw","sw"}, default="sw", help="Which backend should be used? Simulation or hardware plotter?")
@@ -27,7 +22,7 @@ if __name__ == '__main__':
     args=parser.parse_args()
     print(args)
     
-    calib = utils.Calibration()
+    calib = Calibration()
         
     base = config.PLOTTER_HARDWARE_CONFIG["base_width"]
     calib_len = np.array(args.calib)
@@ -38,16 +33,16 @@ if __name__ == '__main__':
     print(calib)
 
     if args.backend=="hw":
-        if hasattr(plotter, 'HardwarePlotter'):
+        if hasattr(plotter_hw, 'HardwarePlotter'):
             print("Using hardware plotter backend")
-            plotter = plotter.HardwarePlotter(calib)
+            plotter = plotter_hw.HardwarePlotter(config.PLOTTER_HARDWARE_CONFIG, calib)
         else:
             print("Hardware plotter backend not available!")
             exit(1)
     else:
-        if hasattr(plotter, 'SimulationPlotter'):
+        if hasattr(plotter_sw, 'SimulationPlotter'):
             print("Using simulation plotter backend")
-            plotter = plotter.SimulationPlotter(calib, args.sim_speed, args.non_draw_lines)
+            plotter = plotter_sw.SimulationPlotter(config.PLOTTER_HARDWARE_CONFIG, calib, args.sim_speed, args.non_draw_lines)
         else:
             print("Simulation plotter backend not available!")
             exit(1)
@@ -65,49 +60,4 @@ if __name__ == '__main__':
     elif args.runfile is not None:
       plotter.executeGCodeFile(args.runfile)
         
-      
-        
-      
-    #plotter.workerQueue.put("M3")
-    #plotter.workerQueue.put("M4")
-    #plotter.workerQueue.put("G0 X100 Y0 S10000")
-    
-    #im = imageio.imread('imageio:chelsea.png')
-    # im = imageio.imread('catsmall.png')
-    #im = imageio.imread('test.png')
-    
-    #im = im.mean(axis = 2)
-    
-    #gen = gcode_generators.BinaryGenerator()
-    #gen.params["scale"] = 1
-    #gen.params["offset"] = [0,0]
-    #gcode = gen.convertImage(im > 120)
-    
-    # gen = gcode_generators.SinWaveGenerator()
-    # gen.params["scale"] = 2
-    # gen.params["offset"] = [10,10]
-    # gcode = gen.convertImage(im)    
-    
-    # gen = gcode_generators.BoxGenerator()
-    # gen.params["scale"] = 4.5
-    # gen.params["offset"] = [10,10]
-    # gcode = gen.convertImage(im)    
-    
-    #print("Postprocessing gcode...")
-    #gcode = gcode_generators.postProcessGCode(gcode, minSegmentLen=1)
-    
-    #print("Saving gcode...")
-    #with open('example.gcode', 'w') as the_file:
-    #    the_file.write("\n".join(gcode))
-        
-    #print("Executing gcode...")
-    #plotter.executeGCodeFile("example.gcode")
-    
-
     plotter.shutdown()
-      
-      # pr.disable()
-      # pr.print_stats(sort='time')
-    
-    #finally:
-      #GPIO.cleanup()

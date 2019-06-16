@@ -56,7 +56,71 @@ After everything installed successfully, download the VPlotter repository:
 `git clone https://github.com/rottaca/VPlotter2.0.git ~/VPlotter2.0`
 
 Test your installation with the software plotter:
-`python plottermain.py --backend sw --calib 300 600 --runfile monalisa.gcode`
+`python plottermain.py --backend sw --calib 300 600 --runfile examples/monalisa.gcode`
+
+
+# How to generate GCode
+
+The gcode generator provides a very detailed commandline interface. Run the toplevel help command to see a list of all available generators and common parameters.
+
+`python gcode_gen.py -h`
+```
+usage: gcode_gen.py [-h] --output OUTPUT [--input INPUT] [--scale SCALE]
+                    [--offset OFFSET OFFSET] [--speed-nodraw SPEED_NODRAW]
+                    [--speed-draw SPEED_DRAW]
+                    {Arc,Box,SinWave,StraightLine} ...
+
+VPlotter gocde generator.
+
+positional arguments:
+  {Arc,Box,SinWave,StraightLine}
+                        Available Generators:
+    Arc                 Generates images by drawing arcs.
+    Box                 Generates images by drawing boxes.
+    SinWave             Generates images by drawing sin waves.
+    StraightLine        Generates images by drawing straight lines.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --output OUTPUT       Output gcode filename (default: None)
+  --input INPUT         Input image filename. Downscale image to speedup
+                        process. (default: imageio:chelsea.png)
+  --scale SCALE         Rescale the generated gcode. (default: 1.0)
+  --offset OFFSET OFFSET
+                        Shift generated gcode by offset (x,y). (default: [0,
+                        0])
+  --speed-nodraw SPEED_NODRAW
+                        Speed when printhead is not drawing. (default: 300000)
+  --speed-draw SPEED_DRAW
+                        Speed when printhead is drawing. (default: 50000)
+```
+
+You can view the generator specific parameters by running:
+
+`python gcode_gen.py StraightLine -h`
+
+```
+usage: gcode_gen.py StraightLine [-h] [--img-threshold-min IMG_THRESHOLD_MIN]
+                                 [--img-threshold-max IMG_THRESHOLD_MAX]
+                                 [--img-threshold-inv]
+                                 [--dirs [{1,2,3,4} [{1,2,3,4} ...]]]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --img-threshold-min IMG_THRESHOLD_MIN
+                        Min threshold for image. (default: 0)
+  --img-threshold-max IMG_THRESHOLD_MAX
+                        Max threshold for image. (default: 255)
+  --img-threshold-inv   Invert image thresholding. (default: False)
+  --dirs [{1,2,3,4} [{1,2,3,4} ...]]
+                        List of directions that should be used for drawing
+                        (default: [1])
+```
+
+Generate a new gcode file by executing e.g.:
+
+`python gcode_gen.py --input examples/catsmall.png --output myResult.gcode StraightLine --img-threshold-min=160`
+
 
 # Wifi Setup (optional)
 Install the raspap-webgui for a simple wifi hotspot with a webinterface. Also have a look on their documentation ( https://github.com/billz/raspap-webgui ).
@@ -72,3 +136,14 @@ Default settings are:
 The quick way to install the hotspot is executing the following command:
 
 `wget -q https://git.io/voEUQ -O /tmp/raspap && bash /tmp/raspap`
+
+
+# GCode Language
+This VPlotter supports a custom gcode version to execute movements. There are a few simple command supported:
+- G0 X\<XCOORD> Y\<YCOORD> [S\<SPEED>]: Move to the specified location [\<XCOORD>, \<YCOORD>] with optional speed \<SPEED>. Default speed is the last specified speed.
+- G28: Go back to home position
+- M4: Lift pen
+- M3: Lower pen and start drawing
+
+Soon, an additional command will be supported:
+- G2 X\<XCOORD> Y\<YCOORD> R\<RADIUS> A\<START> B\<END> [S\<SPEED>]: Draw an arc from angle \<START> to angle \<END> with center [\<XCOORD>, \<YCOORD>] and radius \<RADIUS>. Angles are specified in degrees.
