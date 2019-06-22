@@ -87,7 +87,7 @@ else:
             launch an additional process for the MotorCtrl process.
             This process has to be connected to the plotter process."""
             print("Plotter process started")
-            self.mcq = MotorCtrlQueue()
+            self.mcq = MotorCtrlQueue(self.config)
             self.mcq.start()
             
             i = 0       
@@ -114,9 +114,10 @@ else:
         ctrlQueue.processMovementAsync()
         
     class MotorCtrlQueue():
-        def __init__(self):
+        def __init__(self, config):
             self.workerProcessSteps = Process(target=runMovementExecutor, args=(self,))
             self.workerQueueSteps = Queue(100)
+            self.config = config
             
         def start(self):
             self.workerProcessSteps.start()
