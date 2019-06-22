@@ -56,6 +56,7 @@ After everything installed successfully, download the VPlotter repository:
 `git clone https://github.com/rottaca/VPlotter2.0.git ~/VPlotter2.0`
 
 Test your installation with the software plotter:
+
 `./plottermain.py --backend sw --calib 300 600 --runfile examples/monalisa.gcode`
 
 
@@ -97,7 +98,7 @@ optional arguments:
 
 You can view the generator specific parameters by running:
 
-`python gcode_gen.py StraightLine -h`
+`./gcode_gen.py StraightLine -h`
 
 ```
 usage: gcode_gen.py StraightLine [-h] [--img-threshold-min IMG_THRESHOLD_MIN]
