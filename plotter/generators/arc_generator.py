@@ -2,6 +2,7 @@ import numpy as np
 
 from . import generator_base
 from plotter.utils.gcode import *
+from plotter.utils.helper import overrides
 
 class ArcGenerator(generator_base.GeneratorBase):
     def __init__(self, args):
@@ -23,6 +24,7 @@ class ArcGenerator(generator_base.GeneratorBase):
         subparser.add_argument('--dirs', default=[1], nargs="*", type=int, choices=[1,2,3,4], help="List of directions that should be used for drawing")
         subparser.add_argument('--arc_sampling', default=20, type=int, help="Number of samples per arc.")
 
+    @overrides(generator_base.GeneratorBase)
     def convertImage(self, img):
         
         if len(img.shape) == 3 and img.shape[2] > 1:

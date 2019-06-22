@@ -1,21 +1,21 @@
+#!/usr/bin/env python3
+import numpy as np
+import sys
+import random 
+import imageio
+import argparse
+        
+from plotter import utils
+from plotter import plotter
+
+from plotter.utils.gcode import postProcessGCode
+
+from plotter.generators.arc_generator import ArcGenerator
+from plotter.generators.box_generator import BoxGenerator
+from plotter.generators.sin_wave_generator import SinWaveGenerator
+from plotter.generators.straight_line_generator import StraightLineGenerator
 
 if __name__ == '__main__':
-    import numpy as np
-    import sys
-    import random 
-    import imageio
-    import argparse
-          
-    from plotter import utils
-    from plotter import plotter
-    
-    from plotter.utils.gcode import postProcessGCode
-    
-    from plotter.generators.arc_generator import ArcGenerator
-    from plotter.generators.box_generator import BoxGenerator
-    from plotter.generators.sin_wave_generator import SinWaveGenerator
-    from plotter.generators.straight_line_generator import StraightLineGenerator
-    
     generators = {
         ArcGenerator.getName()          : ArcGenerator,
         BoxGenerator.getName()          : BoxGenerator,

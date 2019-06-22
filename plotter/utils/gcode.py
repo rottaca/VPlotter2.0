@@ -1,21 +1,26 @@
 import numpy as np
 
 def GCode_goTo(p, s=None):
+    """Generate gcode to move to position p(x,y) with optional speed s."""
     if s is not None:
         return "G0 X%f Y%f S%f" % (p[0],p[1], s)
     else:
         return "G0 X%f Y%f" % (p[0],p[1])
         
 def GCode_home():
+    """Go to homing position (0,0)."""
     return "G28"
 
 def GCode_up():
+    """Lift pen."""
     return "M4"
     
 def GCode_down():
+    """Lower pen."""
     return "M3"
     
 def decodeGCode(gcode):
+    """Decodes a gcode command and returns a dictionary of key-value pairs."""
     params = gcode.split()
     data = {}
     try:
@@ -23,15 +28,15 @@ def decodeGCode(gcode):
           val = float(p[1:])
           key = p[0]
           data[key] = val
-          
     except:
-    
       print("Failed to decode command.")
       return {}
       
     return data
 
 def postProcessGCode(gcode, minSegmentLen=1):
+    """Postprocesses a gcode file (list of string commands). 
+    Removes all movements smaller than minSegmentLen and noop commands."""
     init_size=len(gcode)
     gcode_old = gcode
     gcode_curr = []

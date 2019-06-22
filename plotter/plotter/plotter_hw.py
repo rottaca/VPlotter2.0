@@ -5,6 +5,7 @@ import time
 from multiprocessing import Process, Queue
 
 from . import plotter_base
+from plotter.utils.helper import overrides
 
 import importlib
 try:
@@ -17,31 +18,37 @@ if motorlib_loader is None:
 else:
     
     class HardwarePlotter(plotter_base.BasePlotter):
+        """Hardware plotter. The actual implementation which controls the steppers and the servo.
+        This implementation uses the 3 interconnected processes in order to execute all required
+        movements in a smooth way:
+         - The main process is used to push gcode commands into the queue. (default behaviour of baseclass)
+         - The plotter process parses a command, uses the Bresenham line algorithm to break down the move 
+           into seperate short movements. (We can't do a simple linear interpolation due to the belt coordinate system).
+           Linear interpolation is used for the short segments (<1 mm) after applying the bresenham algorithm.
+         - These short segments are executed by parallel lienar interpolation of cord/belt lengths in the MotorControl process. 
+           This process actually controls the stepper motors and the servo.
+         """
         def __init__(self, config, initial_lengh, physicsEngineClass):
             self.servo_pos_up = config["servo_pos_up"]
             self.servo_pos_down = config["servo_pos_down"]
 
             plotter_base.BasePlotter.__init__(self, config, initial_lengh, physicsEngineClass)
             
+        @overrides(plotter_base.BasePlotter)
         def penUp(self):
             self.mcq.queuePenPos(self.servo_pos_up)
-            #super().penUp()
             
+        @overrides(plotter_base.BasePlotter)
         def penDown(self): 
             self.mcq.queuePenPos(self.servo_pos_down)
-            #super().penDown()
                 
+        @overrides(plotter_base.BasePlotter)
         def moveToPos(self, targetPos):
-            # if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
-                # print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
-                # exit(1)
-                
-            #print("Convert movement to %d %d to steps." % (targetPos[0], targetPos[1]))
-            
-            #print("Move to %f x %f"%(targetPos[0],targetPos[1]))
-            #sys.stdout.flush()
 
             # Bresenham line algorithm
+            # This algorithm is used to walk along a straight line on a 
+            # 2D plane in order to move from A(x,y) to B(x,y).
+            # self.calib.resolution indicates the step size for this walking procedure.
             d = np.abs(targetPos - self.currPos)/self.calib.resolution
             d *= [1,-1]
             s = np.ones((2,))
@@ -54,12 +61,6 @@ else:
             while(True):
                 newCordLength = self.physicsEngine.point2CordLength(self.currPos)
                 deltaCordLength = newCordLength - self.currCordLength
-                
-                #print("---------- compute new step block ------------")
-                #print("Current pos: %f %f" %(self.currPos[0], self.currPos[1]))
-                #print("cord len: %f %f" %(newCordLength[0], newCordLength[1]))
-                #print("deltaCordLength: %f %f" %(deltaCordLength[0], deltaCordLength[1]))
-                
                 
                 # Round steps to integer
                 deltaCordLength = (deltaCordLength*self.calib.stepsPerMM).astype(int)
@@ -79,10 +80,13 @@ else:
                 if e2 < d[0]:
                     err += d[0]
                     self.currPos[1] += s[1]*self.calib.resolution
-                    
-                    
+
+        @overrides(plotter_base.BasePlotter)
         def processQueueAsync(self):
-            print("Plotter thread started")
+            """Override the default behavior because we need to 
+            launch an additional process for the MotorCtrl process.
+            This process has to be connected to the plotter process."""
+            print("Plotter process started")
             self.mcq = MotorCtrlQueue()
             self.mcq.start()
             
@@ -91,7 +95,6 @@ else:
             start = time.time()
             while(item is not None):
             
-                #print("Processing cmd: %s" % item)
                 self.executeCmd(item)
                 
                 i+=1
@@ -103,10 +106,11 @@ else:
             
             # Wait for stepper queue
             self.mcq.join()
-            print("Plotter thread stopped")
+            print("Plotter process stopped")
             exit(0)        
     
     def runMovementExecutor(ctrlQueue):
+        """Callback function for the motor control process."""
         ctrlQueue.processMovementAsync()
         
     class MotorCtrlQueue():
@@ -124,7 +128,8 @@ else:
             self.workerProcessSteps.join()
             
         def processMovementAsync(self):
-            print("Movement thread started")
+            """Converts the queued movements from mm to actual steps and executes the movements."""
+            print("Movement process started")
             sys.stdout.flush()
             from . import motorctrl
             motorctrl.initMotorCtrl()
@@ -179,7 +184,7 @@ else:
                 item = self.workerQueueSteps.get()
             
             motorctrl.cleanup()    
-            print("Movement thread stopped")
+            print("Movement process stopped")
             exit(0)
         
         def queuePenPos(self, pos):

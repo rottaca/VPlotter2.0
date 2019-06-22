@@ -10,10 +10,15 @@ from plotter.utils.calibration import *
 
 
 def processPlotterQueue(plotter):
+    """Callback for plotter process."""
     plotter.processQueueAsync()
     
 class BasePlotter:
+    """Base class of all plotter implementations. Always call '__init__' in the derived class after
+    setting up all (custom) member variables. Otherwise the (custom) config and calibration is
+    not available in the worker process."""
     def __init__(self, config, initial_lengh, PhysicsEngineClass):
+        """Sets up the worker process and initializes the system."""
         base = config["base_width"]
         self.calib = Calibration(base,
                                 PhysicsEngineClass.calcOrigin(initial_lengh, base),
@@ -31,34 +36,27 @@ class BasePlotter:
         self.workerQueue = Queue(1000)
         self.workerProcess.start()
     
-    def __str__(self):
-        return """
-{}
-
------------- State ------------
-Current Position: {}
-Current Length:   {}
-PenState:         {}
-Current Speed:    {}
-Queue Size:       {}
--------------------------------""".format(self.calib, self.currPos, self.currCordLength, "DOWN" if self.penIsDown else "UP", self.speed, self.workerQueue.qsize())
-
     def shutdown(self):
+        """Stops the worker queue and the worker process."""
         print("Shutting down..")
         self.workerQueue.put(None) 
         self.workerQueue.close()
         self.workerQueue.join_thread()
         self.workerProcess.join()
         
-    def executeGCodeFile(self, file):
-        with open(file, 'r') as f:
+    def executeGCodeFile(self, file_name):
+        """Opens the specified gcode file and pushes each command into the worker queue.
+        This will block if the queue is full."""
+        with open(file_name, 'r') as f:
             lines = f.readlines()
         
         for c in lines:
             self.workerQueue.put(c.strip())
             
     def processQueueAsync(self):
-        print("Plotter thread started")
+        """Plotter worker function which runs in the worker process. 
+        Processes new commands by reading from the worker queue."""
+        print("Plotter process started")
         
         item = self.workerQueue.get()
         while(item is not None):
@@ -67,11 +65,12 @@ Queue Size:       {}
                 
             item = self.workerQueue.get()
             
-        print("Plotter thread stopped")
+        print("Plotter process stopped")
         exit(0)
     
     def executeCmd(self, cmd):
-        # print("Processing command: %s" % cmd)
+        """Executes a command. Should only be called from the worker process."""
+
         if cmd.startswith("G0"):
             d = decodeGCode(cmd)
             if not d:
@@ -107,23 +106,40 @@ Queue Size:       {}
             self.penUp()
         else:
             print("Unexpected cmd type. Failed to process command.")
-            #exit(0)
             
-    def moveToPos(self, targetPos):        
-        print("Function moveToPos not implemented")
-        exit(1)
+    def moveToPos(self, targetPos):
+        """Move to specified position. 
+        Raises an error if not implemented by derived class."""
+        raise NotImplementedError("Function moveToPos not implemented")
         
     def moveArc(self, center, radius, startAngle, endAngle):
-        print("Function moveArc not implemented")
-        exit(1)
+        """Move on an arc. 
+        Raises an error if not implemented by derived class."""
+        raise NotImplementedError("Function moveArc not implemented")
         
     def penUp(self):
-        print("Function penUp not implemented")
-        exit(1)
+        """Lift the pen. 
+        Raises an error if not implemented by derived class."""
+        raise NotImplementedError("Function penUp not implemented")
         
     def penDown(self):
-        print("Function penDown not implemented")
-        exit(1)
+        """Lower the pen. 
+        Raises an error if not implemented by derived class."""
+        raise NotImplementedError("Function penDown not implemented")
         
     def setSpeed(self, s):
+        """Sets the current speed. (used by subsequent commands)."""
         self.speed = s
+
+    def __str__(self):
+        return """
+{}
+
+------------ State ------------
+Current Position: {}
+Current Length:   {}
+PenState:         {}
+Current Speed:    {}
+Queue Size:       {}
+-------------------------------""".format(self.calib, self.currPos, self.currCordLength, "DOWN" if self.penIsDown else "UP", self.speed, self.workerQueue.qsize())
+

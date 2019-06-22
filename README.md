@@ -56,14 +56,14 @@ After everything installed successfully, download the VPlotter repository:
 `git clone https://github.com/rottaca/VPlotter2.0.git ~/VPlotter2.0`
 
 Test your installation with the software plotter:
-`python plottermain.py --backend sw --calib 300 600 --runfile examples/monalisa.gcode`
+`./plottermain.py --backend sw --calib 300 600 --runfile examples/monalisa.gcode`
 
 
 # How to generate GCode
 
 The gcode generator provides a very detailed commandline interface. Run the toplevel help command to see a list of all available generators and common parameters.
 
-`python gcode_gen.py -h`
+`./gcode_gen.py -h`
 ```
 usage: gcode_gen.py [-h] --output OUTPUT [--input INPUT] [--scale SCALE]
                     [--offset OFFSET OFFSET] [--speed-nodraw SPEED_NODRAW]
@@ -119,7 +119,7 @@ optional arguments:
 
 Generate a new gcode file by executing e.g.:
 
-`python gcode_gen.py --input examples/catsmall.png --output myResult.gcode StraightLine --img-threshold-min=160`
+`./gcode_gen.py --input examples/catsmall.png --output myResult.gcode StraightLine --img-threshold-min=160`
 
 
 # Wifi Setup (optional)

@@ -1,6 +1,6 @@
 import numpy as np
 import time
-
+from plotter.utils.helper import overrides
 from . import plotter_base
 
 import importlib
@@ -17,8 +17,9 @@ else:
     import matplotlib.pyplot as plt
 
     plt.ion()
-    plt.show()  
+    plt.show() 
     class SimulationPlotter(plotter_base.BasePlotter):
+        """Simulation plotter implementation. Renderes movements to a matplotlib figure."""
         def __init__(self, config, initial_lengh, physicsEngineClass, sim_speed, non_drawing_moves):
             self.points_x = []
             self.points_y = []
@@ -32,13 +33,8 @@ else:
             self.sim_speed = sim_speed
             plotter_base.BasePlotter.__init__(self, config, initial_lengh, physicsEngineClass)
 
-        
-        def moveToPos(self, targetPos):
-            
-            # if targetPos[0] < 0 or targetPos[1] < 0 or targetPos[0] > self.calib.base:
-                # print("Position out of range: %f x %f" % (targetPos[0],targetPos[1]))
-                # exit(1)
-                
+        @overrides(plotter_base.BasePlotter)
+        def moveToPos(self, targetPos):             
             if self.penIsDown:
                 self.points_x.append(self.currPos[0] + self.calib.origin[0])
                 self.points_y.append(self.currPos[1] + self.calib.origin[1])
@@ -47,11 +43,8 @@ else:
                 self.points_y_nodraw.append(self.currPos[1] + self.calib.origin[1])
                 
             self.currPos = targetPos
-        
-        # def moveArc(self, center, radius, startAngle, endAngle):
-            # data = [center, radius, startAngle, endAngle]
-            # pass
-        
+                
+        @overrides(plotter_base.BasePlotter)
         def penUp(self):
             if self.penIsDown:
                 self.points_x.append(self.currPos[0] + self.calib.origin[0])
@@ -66,7 +59,7 @@ else:
             
             self.penIsDown = False
 
-            
+        @overrides(plotter_base.BasePlotter)
         def penDown(self):        
             if not self.penIsDown:
                 self.points_x.append(self.currPos[0] + self.calib.origin[0])
@@ -96,7 +89,8 @@ else:
             plt.gca().invert_yaxis()
             plt.draw()
             plt.pause(self.sim_speed)
-                
+             
+        @overrides(plotter_base.BasePlotter)
         def processQueueAsync(self):
             print("Plotter thread started")
             

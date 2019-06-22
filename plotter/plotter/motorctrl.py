@@ -13,15 +13,21 @@ def initMotorCtrl():
 def cleanup():
   GPIO.cleanup() 
 
-""" 
-Stepper controller for multiple steppers that are controlled with individual pololu DRV8825 boards.
-"""
 class StepperCtrl:
+    """ Stepper controller for multiple steppers that are controlled with individual pololu DRV8825 boards.
+    """
     def __init__(self, dir_pins, step_pins, res_pins, micro_stepping=1):
+        """The dimension of all parameters has to match the number of steppers (N):
+         - dir_pins: N values
+         - step_pins: N values
+         - step_pins: N lists of 3 values for the 3 microstepping pins.
+         """
+        assert(len(dir_pins) == len(step_pins))
+        assert(len(step_pins) == len(res_pins))
+
         self.dir_pins=dir_pins
         self.step_pins=step_pins
         self.res_pins=res_pins       
-                    
         self.micro_stepping = micro_stepping
     
     def initGPIO(self):
@@ -47,15 +53,17 @@ class StepperCtrl:
         
     
     def doSteps(self, dirs, steps, stepDelay=0.00000001):
-    
-        #print("Steps: %d %d" % (steps[0],steps[1]))
-        #print("Dirs: %d %d" %(dirs[0], dirs[1]))
+        """Execute steps on all stepper motors in parallel. 
+        All movements are linearly interpolated and executed over the same timespan.
+        Executing this movement requires approximately max(steps)*stepDelay seconds."""
         
         maxSteps=max(steps)
         chCnt = len(steps)
         GPIO.output(self.dir_pins, dirs)
         
         # Compute indices where we have to do a step
+        # We have to figure out how to move the steppers 
+        # in order move them during the same timespan.
         step_pos = []
         for s in range(chCnt):
             step_pos.append(np.linspace(0,maxSteps-1,steps[s]))
@@ -73,6 +81,7 @@ class StepperCtrl:
                     time.sleep(stepDelay)
     
 class ServoCtrl:
+    """Controls a servo by using the GPIO.pwm class. """
     def __init__(self, pwm_pin, ctrl_freq=50, init_duty_cycle=0.1):
         self.ctrl_freq=ctrl_freq
         self.pwm_pin=pwm_pin
@@ -85,5 +94,8 @@ class ServoCtrl:
         
         
     def moveTo(self, duty_cycle, delay=0.3):
+        """Set duty cycle in percent (0.0-100.0). This function 
+        blocks for 'delay' seconds in order to wait for the servo
+        to execute the move."""
         self.pwm.ChangeDutyCycle(duty_cycle)
         time.sleep(delay)

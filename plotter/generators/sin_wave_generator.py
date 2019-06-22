@@ -2,6 +2,7 @@ import numpy as np
 
 from . import generator_base
 from plotter.utils.gcode import *
+from plotter.utils.helper import overrides
 
 class SinWaveGenerator(generator_base.GeneratorBase):
     def __init__(self, args):
@@ -19,6 +20,7 @@ class SinWaveGenerator(generator_base.GeneratorBase):
     def setupCustomParams(cls, subparser):
         pass
 
+    @overrides(generator_base.GeneratorBase)
     def convertImage(self, img):
         
         if len(img.shape) == 3 and img.shape[2] > 1:

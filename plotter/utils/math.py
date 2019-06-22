@@ -1,7 +1,8 @@
 import numpy as np
 
-
 class PhysicsEngine:
+    """Base class for physics implementation which handle computations for 
+    converting cord/belt lengths into (x,y) coordinates and vise versa."""
     def __init__(self, config, calib):
         self.config = config
         self.calib = calib
@@ -20,6 +21,8 @@ class PhysicsEngine:
 
 
 class SimplePhysicsEngine(PhysicsEngine):
+    """Most simple implementation. Assumes pen location at print head center
+    together with the mounting point for both cords/belts."""
     def __init__(self, config, calib):
         PhysicsEngine.__init__(self, config, calib)
 
