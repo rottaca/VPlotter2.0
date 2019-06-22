@@ -17,11 +17,15 @@ class SinWaveGenerator(generator_base.GeneratorBase):
         return "Generates images by drawing sin waves."
 
     @classmethod
+    def getInputType(cls):
+        return "image"
+        
+    @classmethod
     def setupCustomParams(cls, subparser):
         pass
 
     @overrides(generator_base.GeneratorBase)
-    def convertImage(self, img):
+    def convert(self, img):
         
         if len(img.shape) == 3 and img.shape[2] > 1:
             img = img.mean(axis = 2)

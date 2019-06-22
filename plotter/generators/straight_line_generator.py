@@ -17,15 +17,18 @@ class StraightLineGenerator(generator_base.GeneratorBase):
         return "Generates images by drawing straight lines."
 
     @classmethod
+    def getInputType(cls):
+        return "image"
+        
+    @classmethod
     def setupCustomParams(cls, subparser):
         subparser.add_argument('--img-threshold-min', default=0, type=int, help="Min threshold for image.")
         subparser.add_argument('--img-threshold-max', default=255, type=int, help="Max threshold for image.")
         subparser.add_argument('--img-threshold-inv', default=False, action="store_true", help="Invert image thresholding.")
         subparser.add_argument('--dirs', default=[1], nargs="*", type=int, choices=[1,2,3,4], help="List of directions that should be used for drawing")
         
-
     @overrides(generator_base.GeneratorBase)
-    def convertImage(self, img):
+    def convert(self, img):
         
         if len(img.shape) == 3 and img.shape[2] > 1:
             img = img.mean(axis = 2)

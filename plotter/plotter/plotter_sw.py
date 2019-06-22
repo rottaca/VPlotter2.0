@@ -20,7 +20,7 @@ else:
     plt.show() 
     class SimulationPlotter(plotter_base.BasePlotter):
         """Simulation plotter implementation. Renderes movements to a matplotlib figure."""
-        def __init__(self, config, initial_lengh, physicsEngineClass, sim_speed, non_drawing_moves):
+        def __init__(self, config, initial_lengh, physicsEngineClass, sim_speed, sim_plot_interval, non_drawing_moves):
             self.points_x = []
             self.points_y = []
             self.points_x_nodraw = []
@@ -31,6 +31,7 @@ else:
             self.pen_down_y = []
             self.non_drawing_moves = non_drawing_moves
             self.sim_speed = sim_speed
+            self.sim_plot_interval = sim_plot_interval
             plotter_base.BasePlotter.__init__(self, config, initial_lengh, physicsEngineClass)
 
         @overrides(plotter_base.BasePlotter)
@@ -101,7 +102,7 @@ else:
                 self.executeCmd(item)
                 
                 i+=1
-                if i % 1000 == 0:
+                if i % self.sim_plot_interval == 0:
                     print("Processed %d commands. %f ms per cmd. " % (i, (time.time()- start)*1000/i))
                     self.plotCurrentState()
                     

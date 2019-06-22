@@ -17,6 +17,10 @@ class ArcGenerator(generator_base.GeneratorBase):
         return "Generates images by drawing arcs."
 
     @classmethod
+    def getInputType(cls):
+        return "image"
+        
+    @classmethod
     def setupCustomParams(cls, subparser):
         subparser.add_argument('--img-threshold-min', default=0, type=int, help="Min threshold for image.")
         subparser.add_argument('--img-threshold-max', default=255, type=int, help="Max threshold for image.")
@@ -25,7 +29,7 @@ class ArcGenerator(generator_base.GeneratorBase):
         subparser.add_argument('--arc_sampling', default=20, type=int, help="Number of samples per arc.")
 
     @overrides(generator_base.GeneratorBase)
-    def convertImage(self, img):
+    def convert(self, img):
         
         if len(img.shape) == 3 and img.shape[2] > 1:
             img = img.mean(axis = 2)

@@ -17,7 +17,8 @@ if __name__ == '__main__':
     parser.add_argument('--backend', choices={"hw","sw"}, default="sw", help="Which backend should be used? Simulation or hardware plotter?")
     parser.add_argument('--interactive', action='store_true')
     parser.add_argument('--non-draw-lines', action='store_true',help="If the software plotter is used, non-drawing moves can be visualized in red.")
-    parser.add_argument('--sim-speed', type=int, default=0.0001, help="Pause between processed commands in simulation plotter.")
+    parser.add_argument('--sim-speed', type=float, default=0.0001, help="Pause between processed commands in simulation plotter.")
+    parser.add_argument('--sim-plot-interval', type=int, default=1000, help="Plot the current state after every N commands.")
     parser.add_argument('--runfile', type=str)
     parser.add_argument('--calib', nargs=2, type=float, help="Length of left and right string in milimeters", required=True)
     
@@ -37,7 +38,7 @@ if __name__ == '__main__':
     else:
         if hasattr(plotter_sw, 'SimulationPlotter'):
             print("Using simulation plotter backend")
-            plotter = plotter_sw.SimulationPlotter(config.PLOTTER_CONFIG, calib_len, SimplePhysicsEngine, args.sim_speed, args.non_draw_lines)
+            plotter = plotter_sw.SimulationPlotter(config.PLOTTER_CONFIG, calib_len, SimplePhysicsEngine, args.sim_speed, args.sim_plot_interval, args.non_draw_lines)
         else:
             print("Simulation plotter backend not available!")
             exit(1)

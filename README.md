@@ -39,7 +39,7 @@ Activate the virtual environment:
 
 Install our packages in the virtual environment. This may take some time:
 
-`~/vplotterenv/bin/pip3 install wheel numpy scipy imageio matplotlib RPi.GPIO rpimotorlib`
+`~/vplotterenv/bin/pip3 install wheel numpy scipy imageio matplotlib RPi.GPIO rpimotorlib svgpathtools`
 
 If you have trouble with setting up scipy, try the following command:
 
