@@ -13,11 +13,9 @@ class Calibration:
         self.origin = origin
         self.stepsPerMM = stepsPerMM
         self.resolution = resolution
-        
+
     def __str__(self):
         return """----------Calibration----------
 Base: {}
 Origin: {}
 -------------------------------""".format(str(self.base), str(self.origin))
-
-

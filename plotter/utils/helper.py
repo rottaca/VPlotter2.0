@@ -1,6 +1,5 @@
 
 
-
 def overrides(interface_class):
     """Checks if a class method is correctly overridden."""
     def overrider(method):
