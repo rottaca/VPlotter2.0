@@ -127,8 +127,8 @@ Install the raspap-webgui for a simple wifi hotspot with a webinterface. Also ha
 
 Default settings are:
 - IP address: 10.3.141.1
-- Username: admin
-- Password: secret
+- Web Interface Username: admin
+- Web Interface Password: secret
 - DHCP range: 10.3.141.50 to 10.3.141.255
 - SSID: raspi-webgui
 - Password: ChangeMe

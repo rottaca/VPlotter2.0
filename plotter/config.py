@@ -11,8 +11,8 @@ PLOTTER_CONFIG={
 
     # Servo configuration
     "servo_pin"     : 17,                   # Servo signal GPIO pin
-    "servo_pos_up"  : 5,                    # Up position for servo (Duty cycle of PWM in ms)
-    "servo_pos_down": 7,                    # Down position for servo (Duty cycle of PWM in ms)
+    "servo_pos_up"  : 5,                    # Up position for servo 
+    "servo_pos_down": 7,                    # Down position for servo 
 
     # Additional Hardware configuration
     "base_width"    : 680,                  # Width of your plotter. Distance between left and right timing belt mount 

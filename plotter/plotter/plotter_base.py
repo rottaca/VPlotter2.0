@@ -40,7 +40,8 @@ Current Position: {}
 Current Length:   {}
 PenState:         {}
 Current Speed:    {}
-Queue Size:       {}""".format(self.calib, self.currPos, self.currCordLength, "DOWN" if self.penIsDown else "UP", self.speed, self.workerQueue.qsize())
+Queue Size:       {}
+-------------------------------""".format(self.calib, self.currPos, self.currCordLength, "DOWN" if self.penIsDown else "UP", self.speed, self.workerQueue.qsize())
 
     def shutdown(self):
         print("Shutting down..")

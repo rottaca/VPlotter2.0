@@ -18,7 +18,7 @@ if __name__ == '__main__':
     parser.add_argument('--non-draw-lines', action='store_true',help="If the software plotter is used, non-drawing moves can be visualized in red.")
     parser.add_argument('--sim-speed', type=int, default=0.0001, help="Pause between processed commands in simulation plotter.")
     parser.add_argument('--runfile', type=str)
-    parser.add_argument('--calib', nargs=2, type=float, required=True)
+    parser.add_argument('--calib', nargs=2, type=float, help="Length of left and right string in milimeters", required=True)
     
     args=parser.parse_args()
     print(args)

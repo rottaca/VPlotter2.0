@@ -17,6 +17,7 @@ class Calibration:
     def __str__(self):
         return """----------Calibration----------
 Base: {}
-Origin: {}""".format(str(self.base), str(self.origin))
+Origin: {}
+-------------------------------""".format(str(self.base), str(self.origin))
 
 
